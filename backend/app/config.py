@@ -8,7 +8,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str
+    DATABASE_URL: str = "sqlite:///./test.db"
     ENVIRONMENT: str = "development"
 
     # TODO: wire these into Azure OpenAI client configuration once LLM integration is implemented.
