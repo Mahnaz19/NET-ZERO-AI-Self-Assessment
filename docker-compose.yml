@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  db:
+    image: pgvector/pgvector:pg16   # Postgres 16 with pgvector bundled
+    container_name: netzero_db
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: netzero
+    ports:
+      - "5432:5432"
+    volumes:
+      - netzero_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d netzero"]
+      interval: 5s
+      retries: 20
+
+volumes:
+  netzero_pgdata:
