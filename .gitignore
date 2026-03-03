@@ -17,3 +17,10 @@ frontend/.next/
 # OS
 .DS_Store
 Thumbs.db
+# Virtual envs (do NOT commit)
+.venv/
+venv/
+Include/
+Lib/
+Scripts/
+pyvenv.cfg
