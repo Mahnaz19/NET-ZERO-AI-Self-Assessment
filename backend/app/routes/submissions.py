@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -23,12 +24,23 @@ def submit_assessment(
     submission = crud.create_submission(db, submission_in)
 
     # For MVP we run processing synchronously.
+    logger = logging.getLogger("app.routes.submissions")
+    logger.info(
+        "Received submission id=%s — starting synchronous processing (dev only)",
+        submission.id,
+    )
+    # TODO: Move processing to background worker (Celery / Azure Function / Azure Queue + Function)
+
     try:
         submission_service.process_submission(db, submission.id)
-    except Exception as exc:  # noqa: BLE001
+        logger.info("Completed processing for submission id=%s", submission.id)
+    except Exception:  # noqa: BLE001
         # In MVP we still return 201 with 'received' status; we just log the error.
         # TODO: Plug in structured logging/monitoring for processing failures.
-        print(f"Error processing submission {submission.id}: {exc}")
+        logger.exception(
+            "Error processing submission id=%s; returning current submission object",
+            submission.id,
+        )
 
     db.refresh(submission)
     return submission

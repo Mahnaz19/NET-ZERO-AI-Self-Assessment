@@ -1,6 +1,11 @@
 from typing import Any, Dict, List
 
 
+DEFAULT_TARIFF_P_PER_KWH = 30.0  # fallback tariff in pence/kWh (dev placeholder)
+UK_ELECTRICITY_CO2_FACTOR = 0.000233  # tonnes CO2e per kWh (placeholder)
+# TODO: Replace with time-series / regional emissions factors once data model is defined.
+
+
 def compute_baseline(answers: Dict[str, Any]) -> Dict[str, Any]:
     """
     Very simple deterministic baseline calculator.
@@ -20,10 +25,10 @@ def compute_baseline(answers: Dict[str, Any]) -> Dict[str, Any]:
         tariff_p_per_kwh = (annual_cost * 100.0) / annual_kwh
     else:
         # Example default tariff; not domain-accurate.
-        tariff_p_per_kwh = 30.0
+        tariff_p_per_kwh = DEFAULT_TARIFF_P_PER_KWH
 
     # Simple carbon intensity factor (kgCO2e per kWh) converted to tonnes.
-    annual_co2_tonnes = annual_kwh * 0.000233
+    annual_co2_tonnes = annual_kwh * UK_ELECTRICITY_CO2_FACTOR
 
     return {
         "annual_kwh": annual_kwh,

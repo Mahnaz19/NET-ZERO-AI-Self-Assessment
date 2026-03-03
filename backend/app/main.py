@@ -2,12 +2,13 @@ import logging
 
 from fastapi import FastAPI
 
+from .config import settings
 from .db import Base, engine
 from .routes import api_router
 
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("app.main")
 
 
 def create_app() -> FastAPI:
@@ -22,8 +23,13 @@ def create_app() -> FastAPI:
         """
         Application startup hook for dev environment.
         """
-        logger.info("Creating database tables (dev-only).")
-        Base.metadata.create_all(bind=engine)
+        env = settings.ENVIRONMENT
+        logger.info("Application startup in environment=%s", env)
+        if env in ("development", "local"):
+            logger.info("Creating DB tables (development only)")
+            Base.metadata.create_all(bind=engine)
+        else:
+            logger.info("Skipping automatic table creation; managed externally.")
 
     @app.get("/")
     def root() -> dict:
