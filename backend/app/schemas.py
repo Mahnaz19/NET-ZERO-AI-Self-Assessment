@@ -19,8 +19,8 @@ class SubmissionOut(BaseModel):
     created_at: datetime
     report_json: Optional[Dict[str, Any]] = None
 
-    class Config:
-        orm_mode = True
+    # Pydantic v2 configuration – allow population from ORM objects.
+    model_config = {"from_attributes": True}
 
 
 class ReportOut(BaseModel):

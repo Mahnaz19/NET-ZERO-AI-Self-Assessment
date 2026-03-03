@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -16,11 +16,11 @@ class Settings(BaseSettings):
     AZURE_OPENAI_API_KEY: str | None = None
     AZURE_OPENAI_DEPLOYMENT: str | None = None
 
-    class Config:
-        # The project root .env lives two levels up from this file.
-        # Use an absolute path so test runners started from the repo root can still find it.
-        env_file = PROJECT_ROOT / ".env"
-        env_file_encoding = "utf-8"
+    # Pydantic v2 settings configuration.
+    model_config = SettingsConfigDict(
+        env_file=PROJECT_ROOT / ".env",
+        env_file_encoding="utf-8",
+    )
 
 
 @lru_cache()
