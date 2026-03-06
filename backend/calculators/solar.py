@@ -2,18 +2,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 
-ELECTRICITY_CO2_FACTOR: float = 0.19553  # kgCO2e per kWh
+from .baseline import ELECTRICITY_CO2_FACTOR
 
 
 @dataclass(frozen=True)
 class SolarResult:
-    annual_generation_kwh: float
+    annual_generation: float
     self_consumed_kwh: float
     exported_kwh: float
-    savings_import_gbp: float
-    savings_export_gbp: float
-    total_savings_gbp: float
-    carbon_saving_kg: float
+    annual_savings: float
+    carbon_saving: float
+    simple_payback: float | None
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -26,9 +25,19 @@ def calculate_solar(
     self_consumption_rate: float = 0.75,
     electricity_rate: float = 0.30,
     export_rate: float = 0.06,
+    cost: float | None = None,
 ) -> dict:
     """
     Deterministic PV solar generation and savings calculator.
+
+    Args:
+        system_kwp: Installed system size in kWp (non-negative).
+        orientation_factor: Dimensionless factor capturing orientation / pitch.
+        generation_factor: Annual kWh per kWp before orientation adjustment.
+        self_consumption_rate: Fraction of generation self-consumed on site (0–1).
+        electricity_rate: Import electricity rate in £/kWh.
+        export_rate: Export rate in £/kWh.
+        cost: Optional project capex in £ for simple payback.
     """
     if system_kwp < 0:
         raise ValueError("system_kwp must be non-negative")
@@ -38,25 +47,29 @@ def calculate_solar(
         raise ValueError("self_consumption_rate must be between 0 and 1")
     if electricity_rate < 0 or export_rate < 0:
         raise ValueError("electricity_rate and export_rate must be non-negative")
+    if cost is not None and cost < 0:
+        raise ValueError("cost must be non-negative when provided")
 
-    annual_generation_kwh = system_kwp * generation_factor * orientation_factor
-    self_consumed_kwh = annual_generation_kwh * self_consumption_rate
-    exported_kwh = annual_generation_kwh - self_consumed_kwh
+    annual_generation = system_kwp * generation_factor * orientation_factor
+    self_consumed_kwh = annual_generation * self_consumption_rate
+    exported_kwh = annual_generation - self_consumed_kwh
 
-    savings_import_gbp = self_consumed_kwh * electricity_rate
-    savings_export_gbp = exported_kwh * export_rate
-    total_savings_gbp = savings_import_gbp + savings_export_gbp
+    annual_savings = self_consumed_kwh * electricity_rate + exported_kwh * export_rate
 
-    carbon_saving_kg = annual_generation_kwh * ELECTRICITY_CO2_FACTOR
+    # ELECTRICITY_CO2_FACTOR is in kgCO2e/kWh; convert to tonnes.
+    carbon_saving_tonnes = (annual_generation * ELECTRICITY_CO2_FACTOR) / 1000.0
+
+    simple_payback: float | None = None
+    if cost is not None and annual_savings > 0:
+        simple_payback = cost / annual_savings
 
     result = SolarResult(
-        annual_generation_kwh=annual_generation_kwh,
+        annual_generation=annual_generation,
         self_consumed_kwh=self_consumed_kwh,
         exported_kwh=exported_kwh,
-        savings_import_gbp=savings_import_gbp,
-        savings_export_gbp=savings_export_gbp,
-        total_savings_gbp=total_savings_gbp,
-        carbon_saving_kg=carbon_saving_kg,
+        annual_savings=annual_savings,
+        carbon_saving=carbon_saving_tonnes,
+        simple_payback=simple_payback,
     )
     return result.to_dict()
 

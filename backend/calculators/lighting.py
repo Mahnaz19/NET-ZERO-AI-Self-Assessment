@@ -8,9 +8,8 @@ from .baseline import ELECTRICITY_CO2_FACTOR
 @dataclass(frozen=True)
 class LightingResult:
     kwh_saved: float
-    annual_cost_saved_gbp: float
-    annual_carbon_saved_kg: float
-    simple_payback_years: float | None
+    cost_saved: float
+    carbon_saved: float
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -22,10 +21,16 @@ def calculate_led_upgrade(
     new_watt: float,
     annual_hours: float,
     electricity_rate: float,
-    upgrade_cost_gbp: float | None = None,
 ) -> dict:
     """
     Deterministic LED lighting upgrade calculator.
+
+    Args:
+        fittings: Number of luminaires.
+        old_watt: Pre-upgrade lamp wattage.
+        new_watt: Post-upgrade lamp wattage.
+        annual_hours: Annual operating hours.
+        electricity_rate: Import rate in £/kWh.
     """
     if fittings < 0:
         raise ValueError("fittings must be non-negative")
@@ -40,18 +45,14 @@ def calculate_led_upgrade(
 
     watt_delta = max(old_watt - new_watt, 0.0)
     kwh_saved = (watt_delta * fittings * annual_hours) / 1000.0
-    annual_cost_saved_gbp = kwh_saved * electricity_rate
-    annual_carbon_saved_kg = kwh_saved * ELECTRICITY_CO2_FACTOR
-
-    simple_payback_years: float | None = None
-    if upgrade_cost_gbp is not None and annual_cost_saved_gbp > 0:
-        simple_payback_years = upgrade_cost_gbp / annual_cost_saved_gbp
+    cost_saved = kwh_saved * electricity_rate
+    # ELECTRICITY_CO2_FACTOR is in kgCO2e/kWh; convert to tonnes.
+    carbon_saved_tonnes = (kwh_saved * ELECTRICITY_CO2_FACTOR) / 1000.0
 
     result = LightingResult(
         kwh_saved=kwh_saved,
-        annual_cost_saved_gbp=annual_cost_saved_gbp,
-        annual_carbon_saved_kg=annual_carbon_saved_kg,
-        simple_payback_years=simple_payback_years,
+        cost_saved=cost_saved,
+        carbon_saved=carbon_saved_tonnes,
     )
     return result.to_dict()
 

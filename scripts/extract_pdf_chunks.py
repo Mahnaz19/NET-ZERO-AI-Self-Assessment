@@ -3,10 +3,15 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import uuid
 from pathlib import Path
 from typing import Iterable, List, Tuple
 
 import pdfplumber
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_PDF_DIR = REPO_ROOT / "data" / "raw" / "reports_sample"
+DEFAULT_OUT = REPO_ROOT / "data" / "processed" / "reports_chunks.jsonl"
 
 
 PII_EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", re.MULTILINE)
@@ -51,17 +56,16 @@ def _split_into_sections(text: str) -> List[Tuple[str, str]]:
     return sections or [("unknown", text)]
 
 
-def _chunk_text(section: str, text: str, max_chars: int = 3000) -> Iterable[dict]:
+def _chunk_text(text: str, max_chars: int = 3000) -> Iterable[tuple[int, str]]:
     start = 0
     length = len(text)
+    idx = 0
     while start < length:
         end = min(start + max_chars, length)
         chunk = text[start:end].strip()
         if chunk:
-            yield {
-                "section": section,
-                "text": chunk,
-            }
+            yield idx, chunk
+            idx += 1
         start = end
 
 
@@ -77,10 +81,16 @@ def run(pdf_dir: Path, out_path: Path) -> None:
         cleaned = _clean_text(full_text)
         sections = _split_into_sections(cleaned)
 
-        for section_name, section_text in sections:
-            for chunk in _chunk_text(section_name, section_text):
-                chunk["source"] = pdf_path.name
-                records.append(chunk)
+        chunk_index = 0
+        for _section_name, section_text in sections:
+            for _, chunk_text in _chunk_text(section_text):
+                records.append({
+                    "id": str(uuid.uuid4()),
+                    "filename": pdf_path.name,
+                    "chunk_index": chunk_index,
+                    "text": chunk_text,
+                })
+                chunk_index += 1
 
     with out_path.open("w", encoding="utf-8") as f:
         for record in records:
@@ -92,14 +102,14 @@ def main() -> None:
     parser.add_argument(
         "--pdf_dir",
         type=Path,
-        required=True,
-        help="Directory containing input PDF files",
+        default=DEFAULT_PDF_DIR,
+        help="Directory containing input PDF files (default: data/raw/reports_sample)",
     )
     parser.add_argument(
         "--out",
         type=Path,
-        required=True,
-        help="Output JSONL path",
+        default=DEFAULT_OUT,
+        help="Output JSONL path (default: data/processed/reports_chunks.jsonl)",
     )
     args = parser.parse_args()
     run(args.pdf_dir, args.out)

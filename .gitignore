@@ -1,6 +1,8 @@
 # Local data (do NOT commit)
 data/
 
+data/raw/
+data/processed/
 # Python
 backend/.venv/
 __pycache__/
@@ -20,7 +22,11 @@ Thumbs.db
 # Virtual envs (do NOT commit)
 .venv/
 venv/
-Include/
-Lib/
-Scripts/
-pyvenv.cfg
+.venv/Include/
+.venv/Lib/
+.venv/Scripts/
+.venv/pyvenv.cfg
+venv/Include/
+venv/Lib/
+venv/Scripts/
+venv/pyvenv.cfg
