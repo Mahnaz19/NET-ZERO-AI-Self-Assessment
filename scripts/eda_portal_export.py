@@ -11,6 +11,9 @@ DEFAULT_INPUT = REPO_ROOT / "data" / "raw" / "edi_export_20260224_214316.csv.xls
 DEFAULT_OUT = REPO_ROOT / "data" / "processed"
 SAMPLE_EDI_PATH = REPO_ROOT / "data" / "raw" / "sample_edi.csv"
 
+# Drop columns with at least this fraction of values missing (applied to raw-based cleaned df).
+MISSING_PCT_DROP_THRESHOLD = 90.0
+
 
 def _snake_case(name: str) -> str:
     return (
@@ -28,6 +31,14 @@ def _find_first_column(candidates: Iterable[str], columns: list[str]) -> str | N
         if candidate.lower() in cols_lower:
             return cols_lower[candidate.lower()]
     return None
+
+
+def _find_groupby_column(columns: list[str]) -> str | None:
+    """Use company_primary_business_activity for benchmark grouping only. No extra 'sector' column."""
+    return _find_first_column(
+        ("company_primary_business_activity", "sector", "business_activity", "industry"),
+        columns,
+    )
 
 
 def _ensure_input(input_path: Path) -> Path:
@@ -56,10 +67,12 @@ def run(input_path: Path, out_dir: Path) -> None:
 
     input_path = _ensure_input(input_path)
     if input_path.suffix.lower() in (".xlsx", ".xls"):
-        df = pd.read_excel(input_path)
+        # EDI export has header in row 1 (row 0 is often empty); use header=1 so we get real column names.
+        df = pd.read_excel(input_path, header=1)
     else:
         df = pd.read_csv(input_path)
-    df.columns = [_snake_case(str(c)) for c in df.columns]
+    # Strip BOM from first column name if present, then snake_case all.
+    df.columns = [_snake_case(str(c).strip().lstrip("\ufeff")) for c in df.columns]
 
     # Drop only rows that are exactly identical on every column (full duplicate rows).
     # One company can have many recommendations/steps; those rows differ and are kept.
@@ -68,7 +81,7 @@ def run(input_path: Path, out_dir: Path) -> None:
     n_dupes_removed = n_before - len(df)
 
     # Trim leading/trailing whitespace on all string columns (leave NaN as NaN).
-    for col in df.select_dtypes(include=["object"]).columns:
+    for col in df.select_dtypes(include=["object", "string"]).columns:
         df[col] = df[col].apply(lambda x: x.strip() if isinstance(x, str) else x)
 
     # Uppercase postcode for consistency (find column by common names).
@@ -80,12 +93,12 @@ def run(input_path: Path, out_dir: Path) -> None:
             lambda x: x.strip().upper() if isinstance(x, str) else x
         )
 
-    # Identify sector column.
-    sector_candidates = ("sector", "business_activity", "industry")
-    sector_col = _find_first_column(sector_candidates, list(df.columns))
-    if sector_col is None:
-        df["sector"] = "unknown"
-        sector_col = "sector"
+    # Group by company_primary_business_activity (no extra 'sector' column created).
+    groupby_col = _find_groupby_column(list(df.columns))
+    if groupby_col is None:
+        df = df.copy()
+        df["company_primary_business_activity"] = "unknown"
+        groupby_col = "company_primary_business_activity"
 
     # Coerce numeric columns: energy-related and cost/area fields.
     numeric_keywords = (
@@ -99,36 +112,80 @@ def run(input_path: Path, out_dir: Path) -> None:
     # Missing data: no imputation (NaNs stay NaN) to avoid introducing bias.
     # Outliers: no automatic removal; review extreme values in key columns if needed.
 
-    # Write cleaned data to CSV for export / reuse.
-    clean_path = out_dir / "clean_data.csv"
-    df.to_csv(clean_path, index=False, encoding="utf-8")
+    # EDA missingness: compute missing count and % per column (on raw-based cleaned df).
+    n_rows = len(df)
+    missing_count = df.isna().sum()
+    missing_pct_per_col = (missing_count / n_rows * 100).round(1)
+    # Drop columns with missing % >= threshold (e.g. 90%).
+    cols_to_drop = missing_pct_per_col[missing_pct_per_col >= MISSING_PCT_DROP_THRESHOLD].index.tolist()
+    columns_dropped_high_missing = list(cols_to_drop)
+    df = df.drop(columns=cols_to_drop, errors="ignore")
+    # If groupby column was dropped, re-add or re-resolve.
+    if groupby_col not in df.columns:
+        groupby_col = _find_groupby_column(list(df.columns))
+        if groupby_col is None:
+            df["company_primary_business_activity"] = "unknown"
+            groupby_col = "company_primary_business_activity"
 
+    # Fill empty/NaN in Company Primary Business Activity with "unknown" (in place; no extra sector column).
+    mask_unknown = df[groupby_col].isna() | (df[groupby_col].astype(str).str.strip() == "")
+    df.loc[mask_unknown, groupby_col] = "unknown"
+
+    # Resolve electricity and gas columns for imputation and benchmarks.
     elec_col = _find_first_column(
-        ("electricity_kwh", "annual_electricity_kwh", "electricity_consumption_kwh"),
+        (
+            "company_estimated_yearly_electricity_consumption_(kwh)",
+            "electricity_kwh",
+            "annual_electricity_kwh",
+            "electricity_consumption_kwh",
+        ),
         list(df.columns),
     )
     gas_col = _find_first_column(
-        ("gas_kwh", "annual_gas_kwh", "gas_consumption_kwh"),
+        (
+            "company_estimated_yearly_gas_consumption_(kwh)",
+            "gas_kwh",
+            "annual_gas_kwh",
+            "gas_consumption_kwh",
+        ),
         list(df.columns),
     )
 
-    group = df.groupby(sector_col, dropna=False)
-    agg_data = {
-        "count": group.size(),
-    }
+    # Sector-based median imputation (electricity and gas only; fallback to global median).
+    # Grouping uses company_primary_business_activity (now with "unknown" for missing).
     if elec_col:
+        sector_median_elec = df.groupby(groupby_col, dropna=False)[elec_col].median()
+        global_median_elec = df[elec_col].median()
+        missing_elec = df[elec_col].isna()
+        df.loc[missing_elec, elec_col] = df.loc[missing_elec, groupby_col].map(sector_median_elec)
+        df[elec_col] = df[elec_col].fillna(global_median_elec)
+    if gas_col:
+        sector_median_gas = df.groupby(groupby_col, dropna=False)[gas_col].median()
+        global_median_gas = df[gas_col].median()
+        missing_gas = df[gas_col].isna()
+        df.loc[missing_gas, gas_col] = df.loc[missing_gas, groupby_col].map(sector_median_gas)
+        df[gas_col] = df[gas_col].fillna(global_median_gas)
+
+    # Write cleaned data to CSV (no sector column; company_primary_business_activity has "unknown" where missing).
+    clean_path = out_dir / "clean_data.csv"
+    df.to_csv(clean_path, index=False, encoding="utf-8")
+
+    # Benchmarks: group by company_primary_business_activity; output column named "sector" in CSV.
+    group = df.groupby(groupby_col, dropna=False)
+    agg_data: dict = {"count": group.size()}
+    if elec_col:
+        agg_data["median_electricity_kwh"] = group[elec_col].median()
         agg_data["mean_electricity_kwh"] = group[elec_col].mean()
     if gas_col:
+        agg_data["median_gas_kwh"] = group[gas_col].median()
         agg_data["mean_gas_kwh"] = group[gas_col].mean()
 
-    benchmarks = pd.DataFrame(agg_data).reset_index().rename(
-        columns={sector_col: "sector"},
-    )
+    benchmarks = pd.DataFrame(agg_data).reset_index().rename(columns={groupby_col: "sector"})
 
     benchmarks_path = out_dir / "benchmarks_by_sector.csv"
     benchmarks.to_csv(benchmarks_path, index=False)
 
-    # Missingness: count nulls per column (for summary).
+    # Missingness: count nulls per column on remaining columns (after dropping >= 90% missing).
     missing = df.isna().sum()
     missing_pct = (missing / len(df) * 100).round(1)
     missing_table = pd.DataFrame({
@@ -136,9 +193,7 @@ def run(input_path: Path, out_dir: Path) -> None:
         "missing_count": missing.values,
         "missing_pct": missing_pct.values,
     })
-    missing_table = missing_table[missing_table["missing_count"] > 0].sort_values(
-        "missing_count", ascending=False
-    )
+    missing_table_sorted = missing_table.sort_values("missing_pct", ascending=False)
 
     # EDA summary markdown.
     summary_lines: list[str] = []
@@ -146,8 +201,18 @@ def run(input_path: Path, out_dir: Path) -> None:
     summary_lines.append("")
     summary_lines.append(f"- Input rows (after reading): {n_before}")
     summary_lines.append(f"- Full duplicate rows removed: {n_dupes_removed}")
+    summary_lines.append(f"- Columns dropped (missing >= {MISSING_PCT_DROP_THRESHOLD}%): {len(columns_dropped_high_missing)}")
     summary_lines.append(f"- Rows in cleaned data: {len(df)}")
+    summary_lines.append(f"- Columns in cleaned data: {len(df.columns)}")
     summary_lines.append(f"- Sectors: {benchmarks['sector'].nunique()}")
+    summary_lines.append("")
+    summary_lines.append("## Columns dropped (missing >= 90%)")
+    summary_lines.append("")
+    if columns_dropped_high_missing:
+        for c in sorted(columns_dropped_high_missing):
+            summary_lines.append(f"- {c}")
+    else:
+        summary_lines.append("None.")
     summary_lines.append("")
     summary_lines.append("## Top 10 sectors by count")
     summary_lines.append("")
@@ -157,22 +222,21 @@ def run(input_path: Path, out_dir: Path) -> None:
         summary_lines.append(f"- {row['sector']}: {int(row['count'])} sites")
 
     summary_lines.append("")
-    summary_lines.append("## Missingness (columns with at least one null)")
+    summary_lines.append("## Missing % per column (remaining columns)")
     summary_lines.append("")
-    if len(missing_table) == 0:
-        summary_lines.append("No missing values in any column.")
-    else:
-        summary_lines.append("| Column | Missing count | Missing % |")
-        summary_lines.append("|--------|---------------|------------|")
-        for _, row in missing_table.iterrows():
-            summary_lines.append(
-                f"| {row['column']} | {int(row['missing_count'])} | {row['missing_pct']}% |"
-            )
+    summary_lines.append("| Column | Missing count | Missing % |")
+    summary_lines.append("|--------|---------------|------------|")
+    for _, row in missing_table_sorted.iterrows():
+        summary_lines.append(
+            f"| {row['column']} | {int(row['missing_count'])} | {row['missing_pct']}% |"
+        )
 
     summary_lines.append("")
     summary_lines.append("## Notes")
     summary_lines.append("")
-    summary_lines.append("- **Missing data:** No imputation applied; NaNs are left as-is.")
+    summary_lines.append(f"- **Columns dropped:** Any column with missing >= {MISSING_PCT_DROP_THRESHOLD}% was removed before writing clean_data.csv.")
+    summary_lines.append("- **Sector median imputation:** Missing values in Company Estimated Yearly Electricity and Gas Consumption (KWh) are filled using the median of the row's sector (from Company Primary Business Activity); if sector median is not available, global median is used. No other columns are imputed.")
+    summary_lines.append("- **Other missing data:** No further imputation; other NaNs are left as-is.")
     summary_lines.append("- **Outliers:** No automatic detection or removal; review extreme values in key columns if needed.")
 
     summary_path = out_dir / "eda_summary.md"
