@@ -14,11 +14,34 @@ This document describes how to run the RAG (retrieval-augmented generation) pipe
 | `OPENAI_API_KEY` | OpenAI API key (optional; used if Azure not set) |
 | `AZURE_COG_SEARCH_SERVICE` | Azure Cognitive Search service name (for `--provider azure`) |
 | `AZURE_COG_SEARCH_API_KEY` | Azure Cognitive Search API key |
-| `DATABASE_URL` | Postgres connection string (for pgvector; e.g. `postgresql://user:pass@host/db`) |
+| `DATABASE_URL` | Postgres connection string for pgvector (see below). Example: `postgresql://app:app@localhost:5432/netzero` |
 
 **Local fallback:** If none of the Azure/OpenAI embedding variables are set, the pipeline uses **sentence-transformers** (e.g. `all-MiniLM-L6-v2`) so you can run locally and offline.
 
-## Running ingestion
+## How to run RAG ingest with pgvector
+
+1. **Start Postgres (with pgvector)**  
+   From the repository root, start the DB:
+   ```bash
+   docker compose up -d
+   ```
+   The repo’s `docker-compose.yml` starts Postgres 16 with the **pgvector** extension. The ingest script runs `CREATE EXTENSION IF NOT EXISTS vector` on first use.
+
+2. **Set `DATABASE_URL`**  
+   In the project root `.env` (or in your shell), set the Postgres URL so the backend and ingest script can connect. Example:
+   ```bash
+   DATABASE_URL=postgresql://app:app@localhost:5432/netzero
+   ```
+   Adjust `user`, `password`, `host`, `port`, and `dbname` to match your `docker-compose.yml` or local Postgres.
+
+3. **Run ingest**  
+   From the **repository root**:
+   ```bash
+   python scripts/ingest_rag.py --input data/processed/reports_chunks.jsonl --provider pgvector
+   ```
+   If the input JSONL exists, this creates/updates the `beas_reports` table and writes `data/processed/rag_embeddings.parquet`. If Postgres is unreachable, the script still writes the parquet file and logs a warning.
+
+## Running ingestion (reference)
 
 From the **repository root**:
 
