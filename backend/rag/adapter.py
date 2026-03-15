@@ -198,6 +198,73 @@ class PgVectorAdapter(VectorAdapter):
 
 
 # ---------------------------------------------------------------------------
+# Parquet adapter (read-only retrieval from rag_embeddings.parquet)
+# ---------------------------------------------------------------------------
+
+from pathlib import Path
+
+
+class ParquetAdapter(VectorAdapter):
+    """Read-only adapter: query via cosine similarity over embeddings in a parquet file."""
+
+    def __init__(self, parquet_path: str | Path):
+        self.parquet_path = Path(parquet_path)
+
+    def _load(self) -> tuple[np.ndarray, list[dict]]:
+        import pyarrow.parquet as pq
+        tbl = pq.read_table(self.parquet_path)
+        ids = tbl.column("id")
+        filenames = tbl.column("filename")
+        sections = tbl.column("section")
+        chunk_indices = tbl.column("chunk_index")
+        sectors = tbl.column("sector")
+        texts = tbl.column("text")
+        embeddings = tbl.column("embedding")
+        n = len(ids)
+        vecs = np.array([list(embeddings[i]) for i in range(n)], dtype=np.float32)
+        meta = [
+            {
+                "filename": str(filenames[i]) if filenames[i] is not None else "",
+                "report_id": "",
+                "section": str(sections[i]) if sections[i] is not None else "unknown",
+                "chunk_index": int(chunk_indices[i]) if chunk_indices[i] is not None else 0,
+                "sector": str(sectors[i]) if sectors[i] is not None else "",
+                "created_at": "",
+            }
+            for i in range(n)
+        ]
+        return vecs, [
+            {"id": str(ids[i]), "metadata": meta[i], "text": str(texts[i]) if texts[i] is not None else ""}
+            for i in range(n)
+        ]
+
+    def upsert(self, records: List[Dict[str, Any]]) -> None:
+        """No-op: parquet is read-only for retrieval."""
+        pass
+
+    def query(
+        self,
+        query_embeddings: np.ndarray,
+        top_k: int,
+        filter: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        vecs, rows = self._load()
+        q = query_embeddings.ravel().astype(np.float32)
+        q = q / (np.linalg.norm(q) + 1e-12)
+        norms = np.linalg.norm(vecs, axis=1) + 1e-12
+        scores = (vecs @ q) / norms
+        idx = np.argsort(-scores)[:top_k]
+        return [
+            {"id": rows[i]["id"], "metadata": rows[i]["metadata"], "text": rows[i]["text"], "score": float(scores[i])}
+            for i in idx
+        ]
+
+    def delete_index(self) -> None:
+        """No-op: parquet file is not deleted."""
+        pass
+
+
+# ---------------------------------------------------------------------------
 # Azure Cognitive Search adapter
 # ---------------------------------------------------------------------------
 
