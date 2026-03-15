@@ -10,6 +10,7 @@ __all__ = [
     "VectorAdapter",
     "PgVectorAdapter",
     "AzureCogSearchAdapter",
+    "ParquetAdapter",
     "get_embedding",
     "retrieve",
 ]
