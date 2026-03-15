@@ -119,5 +119,46 @@ All carbon savings are returned in **tonnes CO2e** (converted from kg in the cal
 - Deterministic calculator modules live in `backend/calculators/` (solar, lighting, boiler, refrigeration, heatpump, building fabric, cooling, ventilation, heaters, energy management, misc electric/gas). They use the constants in `backend/calculators/defaults.py`.
 - TODO: Replace calculator stubs with real assessor logic based on the Excel tools in `/docs`.
 - TODO: Introduce background processing for report generation instead of synchronous processing.
-- TODO: Add RAG ingestion and LLM orchestration using Azure OpenAI configuration from environment variables.
+- RAG ingestion and LLM pipeline are implemented under `backend/rag/`; see below.
+
+### Recommendations API (RAG→LLM pipeline)
+
+The recommendations pipeline loads a submission, computes deterministic baseline and candidate measures, retrieves relevant report chunks (RAG), and calls an LLM to produce ranked recommendations and an executive summary. All numeric calculations are deterministic; the LLM only provides natural-language text and ranking.
+
+**Endpoints**
+
+- **POST /api/recommendations** — Body: `{"submission_id": <int>, "top_k": <int, optional, default 5>}`. Runs the pipeline and returns the generated report (200). Creates or overwrites the stored report for that submission.
+- **GET /api/recommendations/{submission_id}** — Returns the stored `report_json` for the submission (404 if not found or no report yet).
+
+**Retrieval provider**
+
+- By default the pipeline uses **auto**: if `DATABASE_URL` is set and Postgres is reachable, it uses **pgvector** for RAG retrieval; if the DB connection fails, it falls back to **parquet** (reads `data/processed/rag_embeddings.parquet`) and logs a warning.
+- To force parquet-only (e.g. no Postgres), ensure `data/processed/rag_embeddings.parquet` exists (run `python scripts/ingest_rag.py` from repo root) and either do not set `DATABASE_URL` or use a provider that skips DB (the current implementation falls back to parquet on connection failure).
+
+**Azure OpenAI (real LLM)**
+
+- Set these environment variables to use Azure OpenAI instead of the mock LLM:
+  - `AZURE_OPENAI_ENDPOINT` — e.g. `https://your-resource.openai.azure.com`
+  - `AZURE_OPENAI_API_KEY` — your API key
+  - `AZURE_OPENAI_DEPLOYMENT` — deployment name for the chat model
+- If any of these are missing, the backend uses **MockLLM**, which returns deterministic example JSON (no API calls). Use this for local development and CI.
+
+**Example: call POST /api/recommendations**
+
+From the repo root (with backend running on port 8000):
+
+```bash
+# Create a submission first (POST /api/submit with answers), then:
+curl -X POST http://localhost:8000/api/recommendations \
+  -H "Content-Type: application/json" \
+  -d '{"submission_id": 1, "top_k": 5}'
+```
+
+Or with httpie:
+
+```bash
+http POST localhost:8000/api/recommendations submission_id:=1 top_k:=5
+```
+
+Example response (with MockLLM): `{"executive_summary": "...", "recommendations": [...], "baseline": {...}, "candidates": [...]}`.
 
