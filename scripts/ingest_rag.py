@@ -138,18 +138,7 @@ def run(
     for i, r in enumerate(records):
         r["embedding"] = embeddings[i]
 
-    if provider == "pgvector":
-        adapter: VectorAdapter = PgVectorAdapter(index_name=index_name, embedding_dim=dim)
-    elif provider == "azure":
-        adapter = AzureCogSearchAdapter(index_name=index_name, embedding_dim=dim)
-    else:
-        print(f"Unknown provider: {provider}. Use pgvector or azure.", file=sys.stderr)
-        sys.exit(1)
-
-    print(f"Upserting to {provider} index '{index_name}'...")
-    adapter.upsert(records)
-
-    # Persist parquet cache
+    # Persist parquet cache first so it exists even if vector store upsert fails
     parquet_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         import pyarrow as pa
@@ -157,7 +146,6 @@ def run(
     except ImportError:
         print("pyarrow not installed; skipping parquet write.", file=sys.stderr)
     else:
-        # Columns: id, filename, section, chunk_index, sector, text, embedding (list), upsert_ts
         upsert_ts = datetime.now(timezone.utc).isoformat()
         tbl = pa.table({
             "id": [r["id"] for r in records],
@@ -171,6 +159,20 @@ def run(
         })
         pq.write_table(tbl, parquet_path)
         print(f"Wrote {parquet_path}")
+
+    # Upsert to vector store (optional: warn on failure but do not fail the run)
+    try:
+        if provider == "pgvector":
+            adapter: VectorAdapter = PgVectorAdapter(index_name=index_name, embedding_dim=dim)
+        elif provider == "azure":
+            adapter = AzureCogSearchAdapter(index_name=index_name, embedding_dim=dim)
+        else:
+            print(f"Unknown provider: {provider}. Use pgvector or azure.", file=sys.stderr)
+            sys.exit(1)
+        print(f"Upserting to {provider} index '{index_name}'...")
+        adapter.upsert(records)
+    except Exception as e:
+        print(f"Warning: vector store upsert failed ({e}). Parquet was still written.", file=sys.stderr)
 
     print(f"Processed {len(records)} records. Vector index: {index_name} (dim={dim}).")
 
