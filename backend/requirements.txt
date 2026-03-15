@@ -10,3 +10,11 @@ httpx
 pandas
 openpyxl
 pdfplumber
+# RAG: embeddings + vector stores
+numpy
+pyarrow
+sentence-transformers
+pgvector
+openai
+azure-search-documents
+tqdm

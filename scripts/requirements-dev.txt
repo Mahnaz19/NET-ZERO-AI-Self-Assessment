@@ -2,3 +2,7 @@ pytest
 pandas
 openpyxl
 pdfplumber
+pyarrow
+tqdm
+# Heavy optional: for local RAG embedding fallback and ingest tests
+# sentence-transformers
