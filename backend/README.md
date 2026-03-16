@@ -135,13 +135,13 @@ The recommendations pipeline loads a submission, computes deterministic baseline
 - By default the pipeline uses **auto**: if `DATABASE_URL` is set and Postgres is reachable, it uses **pgvector** for RAG retrieval; if the DB connection fails, it falls back to **parquet** (reads `data/processed/rag_embeddings.parquet`) and logs a warning.
 - To force parquet-only (e.g. no Postgres), ensure `data/processed/rag_embeddings.parquet` exists (run `python scripts/ingest_rag.py` from repo root) and either do not set `DATABASE_URL` or use a provider that skips DB (the current implementation falls back to parquet on connection failure).
 
-**Azure OpenAI (real LLM)**
+**Azure OpenAI integration**
 
-- Set these environment variables to use Azure OpenAI instead of the mock LLM:
+- To use a real LLM (Azure OpenAI), set these environment variables (e.g. in `.env` or your shell):
   - `AZURE_OPENAI_ENDPOINT` — e.g. `https://your-resource.openai.azure.com`
   - `AZURE_OPENAI_API_KEY` — your API key
   - `AZURE_OPENAI_DEPLOYMENT` — deployment name for the chat model
-- If any of these are missing, the backend uses **MockLLM**, which returns deterministic example JSON (no API calls). Use this for local development and CI.
+- If **any** of these are missing, the backend uses **MockLLM** (no API calls): you can run the pipeline locally and in CI without Azure. MockLLM returns deterministic JSON so tests and development work without real keys.
 
 **Example: call POST /api/recommendations**
 
