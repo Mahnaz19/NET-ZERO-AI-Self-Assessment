@@ -18,3 +18,7 @@ pgvector
 openai
 azure-search-documents
 tqdm
+# Report PDF generation
+jinja2
+weasyprint
+playwright

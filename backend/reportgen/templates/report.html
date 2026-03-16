@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NetZero Report</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; font-size: 12px; line-height: 1.5; color: #1f2937; margin: 0; padding: 24px; max-width: 800px; margin-left: auto; margin-right: auto; }
+    h1 { font-size: 20px; font-weight: 700; margin: 0 0 8px 0; color: #111827; }
+    h2 { font-size: 14px; font-weight: 600; margin: 20px 0 8px 0; color: #374151; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+    .summary { background: #f9fafb; border-radius: 6px; padding: 12px 16px; margin: 12px 0; border-left: 4px solid #3b82f6; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 11px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }
+    th { background: #f3f4f6; font-weight: 600; color: #374151; }
+    tr:nth-child(even) { background: #fafafa; }
+    .rec-text { max-width: 320px; }
+    .num { text-align: right; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 500; }
+    .badge-high { background: #d1fae5; color: #065f46; }
+    .badge-medium { background: #fef3c7; color: #92400e; }
+    .badge-low { background: #e5e7eb; color: #4b5563; }
+    footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #6b7280; }
+  </style>
+</head>
+<body>
+  <h1>NetZero AI Self-Assessment Report</h1>
+
+  <h2>Executive summary</h2>
+  <div class="summary">{{ report.executive_summary or 'No summary available.' }}</div>
+
+  <h2>Baseline</h2>
+  <table>
+    <tr><th>Annual kWh</th><th>Annual cost (GBP)</th><th>Tariff (p/kWh)</th><th>Annual CO2 (tonnes)</th></tr>
+    <tr>
+      <td class="num">{{ report.baseline.annual_kwh | default(0) }}</td>
+      <td class="num">{{ report.baseline.annual_cost_gbp | default(0) }}</td>
+      <td class="num">{{ report.baseline.tariff_p_per_kwh | default(0) }}</td>
+      <td class="num">{{ report.baseline.annual_co2_tonnes | default(0) }}</td>
+    </tr>
+  </table>
+
+  <h2>Recommendations</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Measure</th>
+        <th class="rec-text">Recommendation</th>
+        <th>Priority</th>
+        <th>Confidence</th>
+        <th class="num">kWh saved</th>
+        <th class="num">CO2 saved</th>
+        <th class="num">Payback (yr)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for rec in report.recommendations %}
+      <tr>
+        <td>{{ rec.priority or loop.index }}</td>
+        <td>{{ rec.measure_code }}</td>
+        <td class="rec-text">{{ rec.recommendation_text or '-' }}</td>
+        <td>{{ rec.priority or '-' }}</td>
+        <td><span class="badge badge-{{ (rec.confidence or 'medium') | lower }}">{{ rec.confidence or 'medium' }}</span></td>
+        <td class="num">{{ rec.kwh_saved if rec.kwh_saved is not none else '-' }}</td>
+        <td class="num">{{ rec.carbon_saved if rec.carbon_saved is not none else '-' }}</td>
+        <td class="num">{{ rec.simple_payback if rec.simple_payback is not none else '-' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8">No recommendations.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <footer>Generated from NetZero AI Self-Assessment. Figures are deterministic; narrative is from the assessment pipeline.</footer>
+</body>
+</html>
