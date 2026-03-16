@@ -22,3 +22,5 @@ tqdm
 jinja2
 weasyprint
 playwright
+rq
+redis

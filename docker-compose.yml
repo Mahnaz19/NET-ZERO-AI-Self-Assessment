@@ -17,5 +17,29 @@ services:
       interval: 5s
       retries: 20
 
+  redis:
+    image: redis:7-alpine
+    container_name: netzero_redis
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: netzero_backend
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://app:app@db:5432/netzero
+      ENVIRONMENT: development
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
 volumes:
   netzero_pgdata:

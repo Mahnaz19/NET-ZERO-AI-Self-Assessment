@@ -11,7 +11,10 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./test.db"
     ENVIRONMENT: str = "development"
 
-    # TODO: wire these into Azure OpenAI client configuration once LLM integration is implemented.
+    # Background processing / Redis (optional in dev/CI)
+    REDIS_URL: str | None = None  # e.g. redis://redis:6379/0
+
+    # Azure OpenAI configuration
     AZURE_OPENAI_ENDPOINT: str | None = None
     AZURE_OPENAI_API_KEY: str | None = None
     AZURE_OPENAI_DEPLOYMENT: str | None = None

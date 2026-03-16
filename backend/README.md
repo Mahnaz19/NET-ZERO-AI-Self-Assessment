@@ -118,7 +118,6 @@ All carbon savings are returned in **tonnes CO2e** (converted from kg in the cal
 
 - Deterministic calculator modules live in `backend/calculators/` (solar, lighting, boiler, refrigeration, heatpump, building fabric, cooling, ventilation, heaters, energy management, misc electric/gas). They use the constants in `backend/calculators/defaults.py`.
 - TODO: Replace calculator stubs with real assessor logic based on the Excel tools in `/docs`.
-- TODO: Introduce background processing for report generation instead of synchronous processing.
 - RAG ingestion and LLM pipeline are implemented under `backend/rag/`; see below.
 
 ### Recommendations API (RAG→LLM pipeline)
@@ -161,6 +160,63 @@ http POST localhost:8000/api/recommendations submission_id:=1 top_k:=5
 ```
 
 Example response (with MockLLM): `{"executive_summary": "...", "recommendations": [...], "baseline": {...}, "candidates": [...]}`.
+
+### Background processing and worker
+
+Submissions are now accepted synchronously but processed in the background via an RQ worker.
+
+**Flow**
+
+- **POST /api/submit** — Creates a submission in the DB with `status="received"` and immediately returns `201` with the submission JSON. It enqueues a background job (via Redis/RQ) to run the RAG→LLM pipeline for that submission.
+- The RQ worker runs `app.worker.process_submission_job(submission_id)`, which calls `rag.pipeline.run_recommendation_pipeline(...)` and persists the report JSON.
+- **Admin**: **POST /api/admin/process_submission** — Body: `{"submission_id": <int>}`. Manually triggers processing for a submission by calling the same worker job inline (intended for dev/testing).
+
+**Health checks**
+
+- **GET /api/health** — Simple `{"status": "ok"}`.
+- **GET /api/healthz** — Checks DB connectivity and, if `REDIS_URL` is set, Redis connectivity. Returns `{"status": "ok" | "degraded", "db_ok": bool, "redis_ok": bool | null}`.
+
+**Local Docker stack**
+
+The root `docker-compose.yml` now includes:
+
+- `db` — Postgres with pgvector.
+- `redis` — Redis for the RQ queue.
+- `backend` — FastAPI app container built from `backend/Dockerfile`.
+
+From the project root:
+
+```bash
+docker compose up -d --build
+```
+
+This starts Postgres, Redis, and the backend on `http://localhost:8000`.
+
+**Worker commands**
+
+In one terminal (backend API, if not using `command` in compose):
+
+```bash
+docker compose exec backend uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+In another terminal (RQ worker on the `default` queue):
+
+```bash
+docker compose exec backend rq worker default
+```
+
+The worker will pick up jobs enqueued by `POST /api/submit`.
+
+**Manual processing via admin endpoint**
+
+```bash
+curl -X POST http://localhost:8000/api/admin/process_submission \
+  -H "Content-Type: application/json" \
+  -d '{"submission_id": 1}'
+```
+
+This is useful during development to re-run processing for a given submission without re-submitting answers.
 
 ### Report PDF generation
 
