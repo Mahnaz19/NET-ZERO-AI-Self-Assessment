@@ -45,6 +45,11 @@ and returning stored submissions and simple deterministic example reports.
    ```bash
    DATABASE_URL=postgresql://app:app@localhost:5432/netzero
    ENVIRONMENT=development
+REDIS_URL=redis://localhost:6379/0
+RAG_PROVIDER=auto        # or parquet / pgvector
+AZURE_OPENAI_ENDPOINT=...
+AZURE_OPENAI_API_KEY=...
+AZURE_OPENAI_DEPLOYMENT=...
    ```
 
 4. **Start Postgres via Docker Compose**

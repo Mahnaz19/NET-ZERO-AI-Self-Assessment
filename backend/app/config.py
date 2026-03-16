@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     # Background processing / Redis (optional in dev/CI)
     REDIS_URL: str | None = None  # e.g. redis://redis:6379/0
 
+    # RAG provider: "auto", "parquet", or "pgvector"
+    RAG_PROVIDER: str = "auto"
+
     # Azure OpenAI configuration
     AZURE_OPENAI_ENDPOINT: str | None = None
     AZURE_OPENAI_API_KEY: str | None = None
