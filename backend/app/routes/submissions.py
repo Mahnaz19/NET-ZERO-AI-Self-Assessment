@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from .. import crud, schemas
 from ..db import get_db
-from ..services import submission_service
+from ..worker import enqueue_submission, process_submission_job
 
 
 router = APIRouter(prefix="/api", tags=["submissions"])
@@ -23,27 +23,43 @@ def submit_assessment(
 ) -> Any:
     submission = crud.create_submission(db, submission_in)
 
-    # For MVP we run processing synchronously.
     logger = logging.getLogger("app.routes.submissions")
-    logger.info(
-        "Received submission id=%s — starting synchronous processing (dev only)",
-        submission.id,
-    )
-    # TODO: Move processing to background worker (Celery / Azure Function / Azure Queue + Function)
+    logger.info("Received submission id=%s — enqueuing background processing", submission.id)
+    enqueue_submission(submission.id)
 
-    try:
-        submission_service.process_submission(db, submission.id)
-        logger.info("Completed processing for submission id=%s", submission.id)
-    except Exception:  # noqa: BLE001
-        # In MVP we still return 201 with 'received' status; we just log the error.
-        # TODO: Plug in structured logging/monitoring for processing failures.
-        logger.exception(
-            "Error processing submission id=%s; returning current submission object",
-            submission.id,
-        )
-
-    db.refresh(submission)
     return submission
+
+
+@router.post(
+    "/admin/process_submission",
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def admin_process_submission(
+    body: schemas.SubmissionCreate,
+    db: Session = Depends(get_db),
+) -> Any:
+    """
+    Admin/dev-only endpoint to manually trigger processing for a submission.
+    This calls the same worker function that RQ uses, but inline.
+    """
+    if not body.answers or "submission_id" not in body.answers:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Body must include answers.submission_id for admin processing",
+        )
+    submission_id = int(body.answers["submission_id"])
+    submission = crud.get_submission(db, submission_id)
+    if not submission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Submission {submission_id} not found",
+        )
+    logger = logging.getLogger("app.routes.submissions")
+    logger.info("Admin requested manual processing for submission id=%s", submission_id)
+    # Call worker job directly with existing DB session to avoid extra connections in tests.
+    report = process_submission_job(submission_id)
+    db.refresh(submission)
+    return {"submission_id": submission.id, "status": submission.status, "report": report}
 
 
 @router.get(
