@@ -162,3 +162,31 @@ http POST localhost:8000/api/recommendations submission_id:=1 top_k:=5
 
 Example response (with MockLLM): `{"executive_summary": "...", "recommendations": [...], "baseline": {...}, "candidates": [...]}`.
 
+### Report PDF generation
+
+The backend can render the stored report JSON as HTML and PDF (no LLM calls; deterministic only).
+
+**Endpoints**
+
+- **POST /api/reports/generate_pdf** — Body: `{"submission_id": <int>}`. Generates a PDF from the submission’s stored report and returns it as `application/pdf` with `Content-Disposition: attachment; filename="report_{id}.pdf"`. Returns 400 if the submission has no report (run the recommendations pipeline first).
+- **GET /api/reports/html/{submission_id}** — Returns the report rendered as HTML for preview or debugging.
+
+**Dependencies**
+
+- **Jinja2** — used for the HTML template (`pip install jinja2`).
+- **WeasyPrint** (preferred) — `pip install weasyprint`. On Windows/macOS you may need system libraries (e.g. Pango, GTK). If WeasyPrint fails, the code falls back to Playwright.
+- **Playwright** (fallback) — `pip install playwright`, then install a browser: `playwright install chromium`. Use this if WeasyPrint is not available or fails (e.g. missing C dependencies).
+
+**Example: generate PDF**
+
+After a report exists for a submission (from POST /api/recommendations):
+
+```bash
+curl -X POST http://localhost:8000/api/reports/generate_pdf \
+  -H "Content-Type: application/json" \
+  -d '{"submission_id": 1}' \
+  --output report_1.pdf
+```
+
+To preview HTML: `GET http://localhost:8000/api/reports/html/1`
+
