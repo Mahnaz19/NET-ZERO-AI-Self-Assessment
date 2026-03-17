@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { questionnaireFields, QuestionnaireField } from "@/lib/questionnaire";
@@ -103,8 +103,18 @@ function SectionFields({ section }: { section: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allValues, sectionFields, setValue]);
 
+  const sectionRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const firstInput =
+      sectionRef.current?.querySelector<HTMLElement>(
+        "input, select, textarea, button",
+      );
+    firstInput?.focus();
+  }, [section]);
+
   return (
-    <div className="space-y-4">
+    <div ref={sectionRef} className="space-y-4">
       {sectionFields.map((field) => {
         const visible = evaluateShowIf(field, allValues);
         if (!visible) return null;

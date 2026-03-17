@@ -188,14 +188,25 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
                   {rec.estimated_annual_kwh_saved != null && (
                     <div>
                       <dt className="font-medium">kWh saved/year</dt>
-                      <dd>{rec.estimated_annual_kwh_saved.toLocaleString()}</dd>
+                      <dd>
+                        {Math.round(
+                          rec.estimated_annual_kwh_saved,
+                        ).toLocaleString()}
+                      </dd>
                     </div>
                   )}
                   {rec.estimated_annual_saving_gbp != null && (
                     <div>
                       <dt className="font-medium">£ saving/year</dt>
                       <dd>
-                        £{rec.estimated_annual_saving_gbp.toLocaleString()}
+                        £
+                        {rec.estimated_annual_saving_gbp
+                          .toFixed(2)
+                          .toString()
+                          .replace(
+                            /\B(?=(\d{3})+(?!\d))/g,
+                            ",",
+                          )}
                       </dd>
                     </div>
                   )}
@@ -204,7 +215,13 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
                       <dt className="font-medium">Implementation cost</dt>
                       <dd>
                         £
-                        {rec.estimated_implementation_cost_gbp.toLocaleString()}
+                        {rec.estimated_implementation_cost_gbp
+                          .toFixed(2)
+                          .toString()
+                          .replace(
+                            /\B(?=(\d{3})+(?!\d))/g,
+                            ",",
+                          )}
                       </dd>
                     </div>
                   )}
@@ -218,7 +235,13 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
                     <div>
                       <dt className="font-medium">CO₂ saved/year</dt>
                       <dd>
-                        {rec.estimated_annual_co2_saved_tonnes.toLocaleString()}{" "}
+                        {rec.estimated_annual_co2_saved_tonnes
+                          .toFixed(3)
+                          .toString()
+                          .replace(
+                            /\B(?=(\d{3})+(?!\d))/g,
+                            ",",
+                          )}{" "}
                         tonnes
                       </dd>
                     </div>
