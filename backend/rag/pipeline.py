@@ -30,9 +30,9 @@ def run_recommendation_pipeline(
     """
     from app import calculators, crud
     from .llm_client import get_llm_client
-    from .validation import merge_and_validate_recommendations
     from .prompt_templates import build_recommendation_prompt
     from .retriever_adapter import retrieve_text_chunks
+    from .validation import validate_recommendations
 
     submission = crud.get_submission(db, submission_id)
     if not submission:
@@ -126,18 +126,17 @@ def run_recommendation_pipeline(
     exec_summary = llm_out.get("executive_summary")
     if exec_summary is None:
         exec_summary = ""
-    # Validate each recommendation has required fields (allow extras)
-    required_rec_keys = {"measure_code", "recommendation_text", "priority", "confidence"}
-    for i, r in enumerate(recs):
-        if not isinstance(r, dict) or not required_rec_keys.issubset(r.keys()):
-            logger.warning(
-                "LLM recommendation[%s] missing required keys for submission_id=%s",
-                i, submission_id,
-            )
-            return {"error": True, "message": "LLM recommendation(s) missing required fields"}
 
-    # Merge deterministic numbers into recommendations by measure_code and validate
-    merged_recs = merge_and_validate_recommendations(candidates, recs, _logger=logger)
+    # 7) Deterministic validation of recommendations (also attaches 5 standard fields)
+    try:
+        merged_recs = validate_recommendations(
+            baseline=baseline_summary,
+            candidates=candidates,
+            llm_recs=recs,
+        )
+    except Exception as e:  # noqa: BLE001
+        logger.exception("Recommendation validation failed for submission_id=%s: %s", submission_id, e)
+        return {"error": True, "message": f"Recommendation validation failed: {e}"}
 
     report = {
         "executive_summary": exec_summary,
@@ -146,7 +145,7 @@ def run_recommendation_pipeline(
         "candidates": candidates,
     }
 
-    # 6) Persist
+    # 8) Persist
     updated = crud.update_report(db, submission_id, report, status="ready")
     if not updated:
         raise RuntimeError(f"Failed to update report for submission {submission_id}")

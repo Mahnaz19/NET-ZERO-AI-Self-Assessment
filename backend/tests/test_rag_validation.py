@@ -1,21 +1,19 @@
 from __future__ import annotations
 
-from backend.rag.validation import merge_and_validate_recommendations
+from backend.rag.validation import validate_recommendations
 
 
-def test_merge_and_validate_recommendations_uses_deterministic_values():
+def test_validate_recommendations_populates_standard_fields_from_deterministic():
+    baseline = {"annual_kwh": 50000.0, "annual_cost_gbp": 15000.0, "tariff_p_per_kwh": 30.0, "annual_co2_tonnes": 11.65}
     candidates = [
         {
             "measure_code": "LED_UPGRADE",
+            "measure_label": "LED lighting",
             "kwh_saved": 1000.0,
             "cost_saved": 300.0,
             "carbon_saved": 0.25,
             "simple_payback": 3.0,
-            "estimated_annual_kwh_saved": 1000.0,
-            "estimated_annual_saving_gbp": 300.0,
-            "estimated_implementation_cost_gbp": 5000.0,
-            "payback_years": 3.0,
-            "estimated_annual_co2_saved_tonnes": 0.25,
+            "capex_gbp": 5000.0,
             "applicability_hint": "test",
         }
     ]
@@ -24,8 +22,7 @@ def test_merge_and_validate_recommendations_uses_deterministic_values():
             "measure_code": "LED_UPGRADE",
             "recommendation_text": "Do LEDs",
             "priority": 1,
-            "confidence": "High",
-            # Deliberately conflicting numeric values
+            # Deliberately conflicting numeric values; should be ignored in favour of deterministic.
             "estimated_annual_kwh_saved": 9999.0,
             "estimated_annual_saving_gbp": 9999.0,
             "estimated_implementation_cost_gbp": 9999.0,
@@ -34,20 +31,20 @@ def test_merge_and_validate_recommendations_uses_deterministic_values():
         }
     ]
 
-    merged = merge_and_validate_recommendations(candidates, llm_recs, rel_tol=0.01, abs_tol=1e-6)
+    merged = validate_recommendations(baseline, candidates, llm_recs)
     assert len(merged) == 1
     rec = merged[0]
 
-    # Deterministic values should win over LLM-supplied ones
+    # Deterministic values should populate legacy fields
+    assert rec["kwh_saved"] == 1000.0
+    assert rec["cost_saved"] == 300.0
+    assert rec["carbon_saved"] == 0.25
+    assert rec["simple_payback"] == 3.0
+
+    # And the 5 standard fields, overriding any conflicting LLM values
     assert rec["estimated_annual_kwh_saved"] == 1000.0
     assert rec["estimated_annual_saving_gbp"] == 300.0
     assert rec["estimated_implementation_cost_gbp"] == 5000.0
     assert rec["payback_years"] == 3.0
     assert rec["estimated_annual_co2_saved_tonnes"] == 0.25
-
-    # Legacy fields are also populated
-    assert rec["kwh_saved"] == 1000.0
-    assert rec["cost_saved"] == 300.0
-    assert rec["carbon_saved"] == 0.25
-    assert rec["simple_payback"] == 3.0
 

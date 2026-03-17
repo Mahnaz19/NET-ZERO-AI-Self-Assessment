@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from .. import crud
+from ..config import settings
 from ..db import get_db
 from rag.pipeline import run_recommendation_pipeline
 
@@ -36,11 +37,12 @@ def create_recommendations(
     Returns the generated report (200). Uses parquet fallback if pgvector unavailable.
     """
     try:
+        provider = getattr(settings, "RAG_PROVIDER", "auto") or "auto"
         report = run_recommendation_pipeline(
             db,
             submission_id=body.submission_id,
             top_k=body.top_k or 5,
-            provider="auto",
+            provider=provider,
         )
         return report
     except ValueError as e:
