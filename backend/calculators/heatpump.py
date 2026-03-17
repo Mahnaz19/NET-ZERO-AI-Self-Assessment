@@ -28,6 +28,7 @@ def calculate_heatpump_replacement(
     gas_rate: float = 0.06,
     electricity_rate: float = 0.30,
     cost: float | None = None,
+    implementation_cost_gbp: float | None = None,
 ) -> dict:
     """
     Estimate impact of replacing gas heating with heat pump. Deterministic.
@@ -44,6 +45,8 @@ def calculate_heatpump_replacement(
         raise ValueError("rates must be non-negative")
     if cost is not None and cost < 0:
         raise ValueError("cost must be non-negative when provided")
+    if implementation_cost_gbp is not None and implementation_cost_gbp < 0:
+        raise ValueError("implementation_cost_gbp must be non-negative when provided")
 
     heating_kwh = annual_gas_kwh * fraction_heating_covered
     heatpump_elec_kwh = heating_kwh / cop
@@ -58,16 +61,18 @@ def calculate_heatpump_replacement(
     carbon_elec_added = (electricity_kwh_added * defaults.ELECTRICITY_CO2_FACTOR_KG_PER_KWH) / 1000.0
     carbon_delta = carbon_elec_added - carbon_gas_saved  # positive = more carbon
 
+    effective_cost = implementation_cost_gbp if implementation_cost_gbp is not None else cost
+
     simple_payback: float | None = None
-    if cost is not None and cost_delta > 0:
-        simple_payback = cost / cost_delta
+    if effective_cost is not None and cost_delta > 0:
+        simple_payback = effective_cost / cost_delta
 
     assumptions = [
         f"fraction_heating_covered={fraction_heating_covered:.0%}",
         f"COP={cop}",
     ]
 
-    return HeatpumpResult(
+    out = HeatpumpResult(
         heating_kwh=heating_kwh,
         heatpump_elec_kwh=heatpump_elec_kwh,
         gas_kwh_saved=gas_kwh_saved,
@@ -77,3 +82,18 @@ def calculate_heatpump_replacement(
         simple_payback=simple_payback,
         assumptions=assumptions,
     ).to_dict()
+    # For the portal's 5 fields, heat pump is a bit different: we expose gas_kwh_saved
+    # as the "kWh saved" and cost_delta as the annual saving (negative = saving).
+    annual_kwh_saved = gas_kwh_saved
+    annual_saving_gbp = -cost_delta
+    co2_saved_tonnes = -carbon_delta
+    out.update(
+        {
+            "estimated_annual_kwh_saved": annual_kwh_saved,
+            "estimated_annual_saving_gbp": annual_saving_gbp,
+            "estimated_implementation_cost_gbp": effective_cost,
+            "payback_years": simple_payback,
+            "estimated_annual_co2_saved_tonnes": co2_saved_tonnes,
+        }
+    )
+    return out

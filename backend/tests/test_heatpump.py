@@ -17,6 +17,12 @@ def test_heatpump_zero_gas():
     assert r["gas_kwh_saved"] == 0
     assert r["electricity_kwh_added"] == 0
     assert r["simple_payback"] is None
+    # Normalised fields
+    assert r["estimated_annual_kwh_saved"] == 0
+    assert r["estimated_annual_saving_gbp"] == 0
+    assert r["estimated_implementation_cost_gbp"] is None
+    assert r["payback_years"] is None
+    assert r["estimated_annual_co2_saved_tonnes"] == 0
 
 
 def test_heatpump_typical():
@@ -31,3 +37,11 @@ def test_heatpump_typical():
     assert _close(r["heating_kwh"], heating)
     assert _close(r["heatpump_elec_kwh"], elec_kwh)
     assert _close(r["cost_delta"], expect_cost_delta)
+    # Normalised fields
+    assert _close(r["estimated_annual_kwh_saved"], heating)
+    assert _close(r["estimated_annual_saving_gbp"], -expect_cost_delta)
+    assert r["estimated_implementation_cost_gbp"] is None
+    assert r["payback_years"] is None
+    # carbon delta sign convention: positive = more carbon, so saved is -delta
+    co2_saved = -(r["carbon_delta"])
+    assert _close(r["estimated_annual_co2_saved_tonnes"], co2_saved)

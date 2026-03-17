@@ -21,6 +21,7 @@ def calculate_boiler_upgrade(
     efficiency_improvement: float = 0.20,
     gas_rate: float = 0.06,
     cost: float | None = None,
+    implementation_cost_gbp: float | None = None,
 ) -> dict:
     """
     Deterministic boiler upgrade calculator.
@@ -39,15 +40,19 @@ def calculate_boiler_upgrade(
         raise ValueError("gas_rate must be non-negative")
     if cost is not None and cost < 0:
         raise ValueError("cost must be non-negative when provided")
+    if implementation_cost_gbp is not None and implementation_cost_gbp < 0:
+        raise ValueError("implementation_cost_gbp must be non-negative when provided")
 
     kwh_saved = annual_gas_kwh * efficiency_improvement
     cost_saved = kwh_saved * gas_rate
     # GAS_CO2_FACTOR is in kgCO2e/kWh; convert to tonnes.
     carbon_saved_tonnes = (kwh_saved * GAS_CO2_FACTOR) / 1000.0
 
+    effective_cost = implementation_cost_gbp if implementation_cost_gbp is not None else cost
+
     simple_payback: float | None = None
-    if cost is not None and cost_saved > 0:
-        simple_payback = cost / cost_saved
+    if effective_cost is not None and cost_saved > 0:
+        simple_payback = effective_cost / cost_saved
 
     result = BoilerResult(
         kwh_saved=kwh_saved,
@@ -55,5 +60,15 @@ def calculate_boiler_upgrade(
         carbon_saved=carbon_saved_tonnes,
         simple_payback=simple_payback,
     )
-    return result.to_dict()
+    out = result.to_dict()
+    out.update(
+        {
+            "estimated_annual_kwh_saved": kwh_saved,
+            "estimated_annual_saving_gbp": cost_saved,
+            "estimated_implementation_cost_gbp": effective_cost,
+            "payback_years": simple_payback,
+            "estimated_annual_co2_saved_tonnes": carbon_saved_tonnes,
+        }
+    )
+    return out
 

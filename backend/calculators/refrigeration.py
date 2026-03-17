@@ -26,6 +26,7 @@ def calculate_refrigeration(
     savings_pct: float = defaults.DEFAULT_REFRIG_SAVINGS_PCT,
     electricity_rate: float = 0.30,
     cost: float | None = None,
+    implementation_cost_gbp: float | None = None,
 ) -> dict:
     """
     Estimate refrigeration load savings (e.g. 10% reduction); deterministic.
@@ -39,6 +40,8 @@ def calculate_refrigeration(
         raise ValueError("electricity_rate must be non-negative")
     if cost is not None and cost < 0:
         raise ValueError("cost must be non-negative when provided")
+    if implementation_cost_gbp is not None and implementation_cost_gbp < 0:
+        raise ValueError("implementation_cost_gbp must be non-negative when provided")
 
     if refrigeration_load_kwh is not None:
         load = max(0.0, refrigeration_load_kwh)
@@ -56,11 +59,13 @@ def calculate_refrigeration(
     cost_saved = kwh_saved * electricity_rate
     carbon_saved_tonnes = (kwh_saved * defaults.ELECTRICITY_CO2_FACTOR_KG_PER_KWH) / 1000.0
 
-    simple_payback: float | None = None
-    if cost is not None and cost_saved > 0:
-        simple_payback = cost / cost_saved
+    effective_cost = implementation_cost_gbp if implementation_cost_gbp is not None else cost
 
-    return RefrigerationResult(
+    simple_payback: float | None = None
+    if effective_cost is not None and cost_saved > 0:
+        simple_payback = effective_cost / cost_saved
+
+    out = RefrigerationResult(
         refrigeration_load_kwh=load,
         kwh_saved=kwh_saved,
         cost_saved=cost_saved,
@@ -68,3 +73,13 @@ def calculate_refrigeration(
         simple_payback=simple_payback,
         assumptions=assumptions,
     ).to_dict()
+    out.update(
+        {
+            "estimated_annual_kwh_saved": kwh_saved,
+            "estimated_annual_saving_gbp": cost_saved,
+            "estimated_implementation_cost_gbp": effective_cost,
+            "payback_years": simple_payback,
+            "estimated_annual_co2_saved_tonnes": carbon_saved_tonnes,
+        }
+    )
+    return out

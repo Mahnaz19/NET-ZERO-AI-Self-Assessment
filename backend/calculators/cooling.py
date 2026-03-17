@@ -51,12 +51,22 @@ def calculate_cooling_upgrade(
     simple_payback: float | None = None
     if cost is not None and cost_saved > 0:
         simple_payback = cost / cost_saved
-
-    return CoolingResult(
+    result = CoolingResult(
         cooling_load_kwh=load,
         kwh_saved=kwh_saved,
         cost_saved=cost_saved,
         carbon_saved=carbon_saved_tonnes,
         simple_payback=simple_payback,
         assumptions=assumptions,
-    ).to_dict()
+    )
+    out = result.to_dict()
+    out.update(
+        {
+            "estimated_annual_kwh_saved": kwh_saved,
+            "estimated_annual_saving_gbp": cost_saved,
+            "estimated_implementation_cost_gbp": cost,
+            "payback_years": simple_payback,
+            "estimated_annual_co2_saved_tonnes": carbon_saved_tonnes,
+        }
+    )
+    return out

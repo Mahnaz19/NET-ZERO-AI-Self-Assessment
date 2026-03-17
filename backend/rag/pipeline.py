@@ -30,6 +30,7 @@ def run_recommendation_pipeline(
     """
     from app import calculators, crud
     from .llm_client import get_llm_client
+    from .validation import merge_and_validate_recommendations
     from .prompt_templates import build_recommendation_prompt
     from .retriever_adapter import retrieve_text_chunks
 
@@ -53,15 +54,28 @@ def run_recommendation_pipeline(
     candidates: List[Dict[str, Any]] = []
     for m in measure_summaries:
         kwh = float(m.get("annual_savings_kwh", 0) or 0)
-        candidates.append({
-            "measure_code": m.get("code", ""),
-            "measure_label": m.get("title", ""),
-            "kwh_saved": kwh,
-            "cost_saved": float(m.get("annual_savings_gbp", 0) or 0),
-            "carbon_saved": round(kwh * UK_ELECTRICITY_CO2_FACTOR, 4),
-            "simple_payback": float(m.get("simple_payback_years", 0) or 0),
-            "applicability_hint": m.get("applicability_hint", "") or "",
-        })
+        cost_saved = float(m.get("annual_savings_gbp", 0) or 0)
+        carbon_saved = round(kwh * UK_ELECTRICITY_CO2_FACTOR, 4)
+        simple_payback = float(m.get("simple_payback_years", 0) or 0)
+        implementation_cost = float(m.get("capex_gbp", 0) or 0)
+        candidates.append(
+            {
+                "measure_code": m.get("code", ""),
+                "measure_label": m.get("title", ""),
+                # Legacy numeric fields kept for backwards compatibility
+                "kwh_saved": kwh,
+                "cost_saved": cost_saved,
+                "carbon_saved": carbon_saved,
+                "simple_payback": simple_payback,
+                # Standardised 5 fields used by the report and validation
+                "estimated_annual_kwh_saved": kwh,
+                "estimated_annual_saving_gbp": cost_saved,
+                "estimated_implementation_cost_gbp": implementation_cost,
+                "payback_years": simple_payback,
+                "estimated_annual_co2_saved_tonnes": carbon_saved,
+                "applicability_hint": m.get("applicability_hint", "") or "",
+            }
+        )
 
     # 3) RAG retrieval
     sector = (answers.get("sector") or "").strip() or None
@@ -122,24 +136,8 @@ def run_recommendation_pipeline(
             )
             return {"error": True, "message": "LLM recommendation(s) missing required fields"}
 
-    # Merge deterministic numbers into recommendations by measure_code
-    candidate_by_code = {c["measure_code"]: c for c in candidates}
-    merged_recs = []
-    for r in recs:
-        code = r.get("measure_code") or ""
-        det = candidate_by_code.get(code, {})
-        merged_recs.append({
-            "measure_code": code,
-            "score": r.get("score"),
-            "recommendation_text": r.get("recommendation_text") or "",
-            "priority": r.get("priority"),
-            "confidence": r.get("confidence"),
-            "kwh_saved": det.get("kwh_saved"),
-            "cost_saved": det.get("cost_saved"),
-            "carbon_saved": det.get("carbon_saved"),
-            "simple_payback": det.get("simple_payback"),
-            "applicability_hint": det.get("applicability_hint"),
-        })
+    # Merge deterministic numbers into recommendations by measure_code and validate
+    merged_recs = merge_and_validate_recommendations(candidates, recs, _logger=logger)
 
     report = {
         "executive_summary": exec_summary,

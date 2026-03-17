@@ -21,6 +21,7 @@ def calculate_led_upgrade(
     new_watt: float,
     annual_hours: float,
     electricity_rate: float,
+    implementation_cost_gbp: float | None = None,
 ) -> dict:
     """
     Deterministic LED lighting upgrade calculator.
@@ -40,6 +41,8 @@ def calculate_led_upgrade(
         raise ValueError("annual_hours must be non-negative")
     if electricity_rate < 0:
         raise ValueError("electricity_rate must be non-negative")
+    if implementation_cost_gbp is not None and implementation_cost_gbp < 0:
+        raise ValueError("implementation_cost_gbp must be non-negative when provided")
     if old_watt <= new_watt and fittings > 0 and annual_hours > 0:
         raise ValueError("old_watt must be greater than new_watt for an upgrade")
 
@@ -49,10 +52,24 @@ def calculate_led_upgrade(
     # ELECTRICITY_CO2_FACTOR is in kgCO2e/kWh; convert to tonnes.
     carbon_saved_tonnes = (kwh_saved * ELECTRICITY_CO2_FACTOR) / 1000.0
 
+    simple_payback: float | None = None
+    if implementation_cost_gbp is not None and cost_saved > 0:
+        simple_payback = implementation_cost_gbp / cost_saved
+
     result = LightingResult(
         kwh_saved=kwh_saved,
         cost_saved=cost_saved,
         carbon_saved=carbon_saved_tonnes,
     )
-    return result.to_dict()
+    out = result.to_dict()
+    out.update(
+        {
+            "estimated_annual_kwh_saved": kwh_saved,
+            "estimated_annual_saving_gbp": cost_saved,
+            "estimated_implementation_cost_gbp": implementation_cost_gbp,
+            "payback_years": simple_payback,
+            "estimated_annual_co2_saved_tonnes": carbon_saved_tonnes,
+        }
+    )
+    return out
 

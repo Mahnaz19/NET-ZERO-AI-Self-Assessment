@@ -49,9 +49,11 @@
         <th class="rec-text">Recommendation</th>
         <th>Priority</th>
         <th>Confidence</th>
-        <th class="num">kWh saved</th>
-        <th class="num">CO2 saved</th>
-        <th class="num">Payback (yr)</th>
+        <th class="num">Annual kWh saved</th>
+        <th class="num">Annual saving (GBP)</th>
+        <th class="num">Implementation cost (GBP)</th>
+        <th class="num">Payback (years)</th>
+        <th class="num">Annual CO₂ saved (tonnes)</th>
       </tr>
     </thead>
     <tbody>
@@ -62,12 +64,34 @@
         <td class="rec-text">{{ rec.recommendation_text or '-' }}</td>
         <td>{{ rec.priority or '-' }}</td>
         <td><span class="badge badge-{{ (rec.confidence or 'medium') | lower }}">{{ rec.confidence or 'medium' }}</span></td>
-        <td class="num">{{ rec.kwh_saved if rec.kwh_saved is not none else '-' }}</td>
-        <td class="num">{{ rec.carbon_saved if rec.carbon_saved is not none else '-' }}</td>
-        <td class="num">{{ rec.simple_payback if rec.simple_payback is not none else '-' }}</td>
+        <td class="num">
+          {{ rec.estimated_annual_kwh_saved
+             if rec.estimated_annual_kwh_saved is not none
+             else (rec.kwh_saved if rec.kwh_saved is not none else '-') }}
+        </td>
+        <td class="num">
+          {{ rec.estimated_annual_saving_gbp
+             if rec.estimated_annual_saving_gbp is not none
+             else (rec.cost_saved if rec.cost_saved is not none else '-') }}
+        </td>
+        <td class="num">
+          {{ rec.estimated_implementation_cost_gbp
+             if rec.estimated_implementation_cost_gbp is not none
+             else '-' }}
+        </td>
+        <td class="num">
+          {{ rec.payback_years
+             if rec.payback_years is not none
+             else (rec.simple_payback if rec.simple_payback is not none else '-') }}
+        </td>
+        <td class="num">
+          {{ rec.estimated_annual_co2_saved_tonnes
+             if rec.estimated_annual_co2_saved_tonnes is not none
+             else (rec.carbon_saved if rec.carbon_saved is not none else '-') }}
+        </td>
       </tr>
       {% else %}
-      <tr><td colspan="8">No recommendations.</td></tr>
+      <tr><td colspan="10">No recommendations.</td></tr>
       {% endfor %}
     </tbody>
   </table>
