@@ -5,12 +5,12 @@ import * as fetchPdfModule from "@/lib/fetchPdf";
 
 describe("QuestionnaireForm consent", () => {
   it("requires consent_self_reported before completing", async () => {
-    const onComplete = vi.fn();
+    const onComplete = jest.fn();
     render(<QuestionnaireForm onComplete={onComplete} />);
 
-    // Try to go to confirm without ticking consent: trigger validation on first step
-    const reviewButton = screen.getByRole("button", { name: /review & confirm/i });
-    fireEvent.click(reviewButton);
+    // Try to advance without ticking consent: trigger validation on first step
+    const nextButton = screen.getByRole("button", { name: /next/i });
+    fireEvent.click(nextButton);
 
     await waitFor(() => {
       expect(
@@ -23,13 +23,13 @@ describe("QuestionnaireForm consent", () => {
 
 describe("PdfDownloadButton success", () => {
   it("invokes fetchPdf and does not show error on success", async () => {
-    const spy = vi
+    const spy = jest
       .spyOn(fetchPdfModule, "fetchPdf")
-      .mockResolvedValueOnce();
+      .mockResolvedValueOnce(undefined);
 
     render(<PdfDownloadButton reportId="success-report" />);
 
-    const button = screen.getByRole("button", { name: /download pdf/i });
+    const button = screen.getByRole("button", { name: /download.*pdf/i });
     fireEvent.click(button);
 
     await waitFor(() => {
@@ -39,5 +39,4 @@ describe("PdfDownloadButton success", () => {
       screen.queryByText(/unable to download pdf/i),
     ).not.toBeInTheDocument();
   });
-}
-
+});
