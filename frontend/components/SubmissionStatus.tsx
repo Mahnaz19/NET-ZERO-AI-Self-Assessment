@@ -30,17 +30,25 @@ export function SubmissionStatus({ submissionId, onDone }: SubmissionStatusProps
 
     async function poll() {
       try {
-        const res = await apiClient.get<SubmissionStatusResponse>(
-          `/api/submissions/${encodeURIComponent(submissionId)}/status`,
-        );
+        const res = await apiClient.get<{
+          status: string;
+          report_json?: unknown;
+          id?: number;
+        }>(`/api/report/${encodeURIComponent(submissionId)}`);
         if (cancelled) return;
-        setStatus(res.data);
-        if (res.data.status === "done" && res.data.reportId) {
-          onDone(res.data.reportId);
+        const st = res.data.status;
+        const normalizedStatus =
+          st === "ready" ? "done" : st === "received" ? "processing" : st;
+        setStatus({
+          status: normalizedStatus,
+          reportId: st === "ready" ? String(res.data.id ?? submissionId) : undefined,
+        });
+        if (st === "ready") {
+          onDone(String(res.data.id ?? submissionId));
           return;
         }
-        if (res.data.status === "failed") {
-          setError(res.data.error_message ?? "Submission failed.");
+        if (st !== "received") {
+          setError("Submission failed.");
           return;
         }
         setTimeout(poll, 3000);

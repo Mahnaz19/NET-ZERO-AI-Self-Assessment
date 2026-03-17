@@ -55,13 +55,26 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
         const baseUrl =
           process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
         const res = await fetch(
-          `${baseUrl}/api/reports/${encodeURIComponent(reportId)}`,
+          `${baseUrl}/api/report/${encodeURIComponent(reportId)}`,
         );
         if (!res.ok) {
           throw new Error("Failed to fetch report.");
         }
-        const json = (await res.json()) as ReportData;
-        setReport(json);
+        const submission = (await res.json()) as {
+          report_json?: ReportData | null;
+          business_name?: string;
+          postcode?: string;
+        };
+        const json = submission.report_json;
+        if (!json || typeof json !== "object") {
+          throw new Error("No report data available.");
+        }
+        setReport({
+          ...json,
+          report_id: json.report_id ?? reportId,
+          business_name: json.business_name ?? submission.business_name ?? "",
+          site_postcode: json.site_postcode ?? submission.postcode,
+        });
       } catch (err) {
         setError("Unable to load report. Please try again later.");
       }

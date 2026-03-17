@@ -9,7 +9,9 @@ export const apiClient = axios.create({
 });
 
 export interface SubmitQuestionnaireResponse {
-  submissionId: string;
+  id?: number;
+  submissionId?: string;
+  status?: string;
 }
 
 export interface SubmissionStatusResponse {

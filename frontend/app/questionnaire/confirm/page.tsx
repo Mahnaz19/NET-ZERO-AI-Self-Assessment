@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { questionnaireSchema, type QuestionnaireFormValues } from "@/lib/schema";
+import { questionnaireFields } from "@/lib/questionnaire";
+import { clearHiddenFields } from "@/components/QuestionnaireForm";
 import { apiClient, type SubmitQuestionnaireResponse } from "@/lib/apiClient";
 import { SubmitButton } from "@/components/SubmitButton";
 
@@ -54,12 +56,18 @@ export default function QuestionnaireConfirmPage() {
         router.push("/submission/mock-submission-id");
         return;
       }
+      const payload = clearHiddenFields(values, questionnaireFields);
       const res = await apiClient.post<SubmitQuestionnaireResponse>(
-        "/api/questionnaire/submit",
-        values,
+        "/api/submit",
+        {
+          business_name: payload.business_name,
+          postcode: payload.site_postcode,
+          answers: payload,
+        },
       );
       window.localStorage.removeItem(STORAGE_KEY);
-      router.push(`/submission/${encodeURIComponent(res.data.submissionId)}`);
+      const submissionId = res.data.submissionId ?? res.data.id;
+      router.push(`/submission/${encodeURIComponent(String(submissionId))}`);
     } catch {
       setError(
         "There was a problem submitting your questionnaire. Please try again.",

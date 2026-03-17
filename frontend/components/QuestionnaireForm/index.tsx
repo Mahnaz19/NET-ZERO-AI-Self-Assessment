@@ -73,7 +73,7 @@ function evaluateShowIf(
   return true;
 }
 
-function clearHiddenFields(
+export function clearHiddenFields(
   values: QuestionnaireFormValues,
   fields: QuestionnaireField[],
 ): QuestionnaireFormValues {
@@ -88,33 +88,10 @@ function clearHiddenFields(
 }
 
 function SectionFields({ section }: { section: string }) {
-  const { register, formState, watch, setValue } =
+  const { register, formState, watch } =
     useFormContext<QuestionnaireFormValues>();
   const sectionFields = fieldsBySection.get(section) ?? [];
-
-  // Only re-run when visibility-controlling fields change (avoids effect loop from watch() reference churn)
-  const controllerFields = useMemo(() => {
-    const names = new Set<string>();
-    for (const f of sectionFields) {
-      if (f.showIf?.field) names.add(f.showIf.field);
-    }
-    return Array.from(names);
-  }, [sectionFields]);
-  const controlledValues = controllerFields.length
-    ? watch(controllerFields as (keyof QuestionnaireFormValues)[])
-    : null;
   const allValues = watch();
-
-  useEffect(() => {
-    const allValues = watch();
-    const cleared = clearHiddenFields(allValues, sectionFields);
-    for (const key of Object.keys(cleared) as (keyof QuestionnaireFormValues)[]) {
-      if (cleared[key] !== allValues[key]) {
-        setValue(key, cleared[key]);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [controlledValues, section, setValue]);
 
   const sectionRef = useRef<HTMLDivElement | null>(null);
 
@@ -270,7 +247,8 @@ export function QuestionnaireForm({ onComplete }: QuestionnaireFormProps) {
   };
 
   const onSubmit = handleSubmit(async (data) => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    const cleared = clearHiddenFields(data, questionnaireFields);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cleared));
     onComplete();
   });
 
