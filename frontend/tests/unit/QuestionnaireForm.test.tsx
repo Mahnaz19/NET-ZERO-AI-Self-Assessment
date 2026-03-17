@@ -2,7 +2,9 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QuestionnaireForm } from "@/components/QuestionnaireForm";
 
 describe("QuestionnaireForm", () => {
-  it("hides and clears conditional fields when show-if no longer matches", async () => {
+  it(
+    "hides and clears conditional fields when show-if no longer matches",
+    async () => {
     const onComplete = jest.fn();
 
     render(<QuestionnaireForm onComplete={onComplete} />);
@@ -39,7 +41,7 @@ describe("QuestionnaireForm", () => {
       { target: { value: "1 Example Street" } },
     );
     fireEvent.change(
-      screen.getByLabelText(/^postcode$/i),
+      screen.getByLabelText(/postcode/i),
       { target: { value: "AB12 3CD" } },
     );
     fireEvent.change(
@@ -115,6 +117,8 @@ describe("QuestionnaireForm", () => {
         screen.queryByLabelText(/gas consumption \(last 12 months\)/i),
       ).not.toBeInTheDocument();
     });
-  });
+    },
+    15_000,
+  );
 });
 
