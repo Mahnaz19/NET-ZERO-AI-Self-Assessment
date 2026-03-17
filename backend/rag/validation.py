@@ -121,6 +121,14 @@ def validate_recommendations(
       * Any mismatch → confidence='low', validation_notes['mismatch'] populated.
     - If LLM omits numbers: fill them from deterministic candidates, confidence='high',
       validation_notes='numbers filled by deterministic calculators'.
+
+    Also ensures the five standard measure fields are present in the output, based on
+    deterministic numbers rather than any LLM-supplied values:
+    - estimated_annual_kwh_saved
+    - estimated_annual_saving_gbp
+    - estimated_implementation_cost_gbp
+    - payback_years
+    - estimated_annual_co2_saved_tonnes
     """
     tol = {**DEFAULT_TOLERANCES, **(tolerance or {})}
     candidate_by_code = {c.get("measure_code", ""): c for c in candidates}
@@ -184,7 +192,25 @@ def validate_recommendations(
             model = RecommendationModel(**asdict(rec))
         except ValidationError as exc:  # pragma: no cover - defensive
             raise ValueError(f"Recommendation failed validation: {exc}") from exc
-        validated.append(model.model_dump())
+
+        out = model.model_dump()
+
+        # Ensure the 5 standard measure fields are present and deterministic.
+        out.update(
+            {
+                "estimated_annual_kwh_saved": det_fields["kwh_saved"],
+                "estimated_annual_saving_gbp": det_fields["cost_saved"],
+                "estimated_implementation_cost_gbp": float(
+                    candidate.get("estimated_implementation_cost_gbp")
+                    or candidate.get("capex_gbp")
+                    or 0.0
+                ),
+                "payback_years": det_fields["simple_payback"],
+                "estimated_annual_co2_saved_tonnes": det_fields["carbon_saved"],
+            }
+        )
+
+        validated.append(out)
 
     return validated
 

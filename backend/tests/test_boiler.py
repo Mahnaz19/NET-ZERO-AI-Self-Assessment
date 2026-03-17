@@ -16,6 +16,12 @@ def test_boiler_zero_usage() -> None:
     assert result["cost_saved"] == 0.0
     assert result["carbon_saved"] == 0.0
     assert result["simple_payback"] is None
+    # Normalised fields
+    assert result["estimated_annual_kwh_saved"] == 0.0
+    assert result["estimated_annual_saving_gbp"] == 0.0
+    assert result["estimated_implementation_cost_gbp"] is None
+    assert result["payback_years"] is None
+    assert result["estimated_annual_co2_saved_tonnes"] == 0.0
 
 
 def test_boiler_upgrade_with_cost_and_defaults() -> None:
@@ -41,4 +47,10 @@ def test_boiler_upgrade_with_cost_and_defaults() -> None:
     assert _almost_equal(result["carbon_saved"], carbon_saved_expected)
     assert result["simple_payback"] is not None
     assert _almost_equal(result["simple_payback"], simple_payback_expected)
+    # Normalised fields
+    assert _almost_equal(result["estimated_annual_kwh_saved"], kwh_saved_expected)
+    assert _almost_equal(result["estimated_annual_saving_gbp"], cost_saved_expected)
+    assert result["estimated_implementation_cost_gbp"] == cost
+    assert _almost_equal(result["payback_years"], simple_payback_expected)
+    assert _almost_equal(result["estimated_annual_co2_saved_tonnes"], carbon_saved_expected)
 

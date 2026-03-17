@@ -44,8 +44,7 @@ def calculate_misc_gas(
     simple_payback: float | None = None
     if cost is not None and cost_saved > 0:
         simple_payback = cost / cost_saved
-
-    return MiscGasResult(
+    result = MiscGasResult(
         estimated_load_kwh=estimated_load_kwh,
         kwh_saved=kwh_saved,
         cost_saved=cost_saved,
@@ -55,4 +54,15 @@ def calculate_misc_gas(
             f"estimated_pct_of_total={estimated_pct_of_total:.0%}",
             f"savings_pct={savings_pct:.0%}",
         ],
-    ).to_dict()
+    )
+    out = result.to_dict()
+    out.update(
+        {
+            "estimated_annual_kwh_saved": kwh_saved,
+            "estimated_annual_saving_gbp": cost_saved,
+            "estimated_implementation_cost_gbp": cost,
+            "payback_years": simple_payback,
+            "estimated_annual_co2_saved_tonnes": carbon_saved_tonnes,
+        }
+    )
+    return out

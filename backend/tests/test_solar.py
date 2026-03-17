@@ -18,6 +18,12 @@ def test_solar_zero_system_kwp() -> None:
     assert result["annual_savings"] == 0.0
     assert result["carbon_saving"] == 0.0
     assert result["simple_payback"] is None
+    # Normalised fields should all be zero/None.
+    assert result["estimated_annual_kwh_saved"] == 0.0
+    assert result["estimated_annual_saving_gbp"] == 0.0
+    assert result["estimated_implementation_cost_gbp"] is None
+    assert result["payback_years"] is None
+    assert result["estimated_annual_co2_saved_tonnes"] == 0.0
 
 
 def test_solar_typical_system_defaults_with_cost() -> None:
@@ -45,6 +51,13 @@ def test_solar_typical_system_defaults_with_cost() -> None:
     assert _almost_equal(result["carbon_saving"], carbon_tonnes_expected)
     assert result["simple_payback"] is not None
     assert _almost_equal(result["simple_payback"], simple_payback_expected)
+    # Normalised fields
+    assert _almost_equal(result["estimated_annual_kwh_saved"], self_consumed_expected)
+    assert _almost_equal(result["estimated_annual_saving_gbp"], annual_savings_expected)
+    # cost is passed via cost argument, so implementation cost should equal it
+    assert result["estimated_implementation_cost_gbp"] == cost
+    assert _almost_equal(result["payback_years"], simple_payback_expected)
+    assert _almost_equal(result["estimated_annual_co2_saved_tonnes"], carbon_tonnes_expected)
 
 
 def test_solar_custom_rates_and_parameters_no_cost() -> None:
@@ -81,4 +94,10 @@ def test_solar_custom_rates_and_parameters_no_cost() -> None:
     assert _almost_equal(result["annual_savings"], annual_savings_expected)
     assert _almost_equal(result["carbon_saving"], carbon_tonnes_expected)
     assert result["simple_payback"] is None
+    # Normalised fields: no implementation cost, so cost/payback None.
+    assert _almost_equal(result["estimated_annual_kwh_saved"], self_consumed_expected)
+    assert _almost_equal(result["estimated_annual_saving_gbp"], annual_savings_expected)
+    assert result["estimated_implementation_cost_gbp"] is None
+    assert result["payback_years"] is None
+    assert _almost_equal(result["estimated_annual_co2_saved_tonnes"], carbon_tonnes_expected)
 

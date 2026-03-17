@@ -32,6 +32,7 @@ def run_recommendation_pipeline(
     from .llm_client import get_llm_client
     from .prompt_templates import build_recommendation_prompt
     from .retriever_adapter import retrieve_text_chunks
+    from .validation import validate_recommendations
 
     submission = crud.get_submission(db, submission_id)
     if not submission:
@@ -53,15 +54,28 @@ def run_recommendation_pipeline(
     candidates: List[Dict[str, Any]] = []
     for m in measure_summaries:
         kwh = float(m.get("annual_savings_kwh", 0) or 0)
-        candidates.append({
-            "measure_code": m.get("code", ""),
-            "measure_label": m.get("title", ""),
-            "kwh_saved": kwh,
-            "cost_saved": float(m.get("annual_savings_gbp", 0) or 0),
-            "carbon_saved": round(kwh * UK_ELECTRICITY_CO2_FACTOR, 4),
-            "simple_payback": float(m.get("simple_payback_years", 0) or 0),
-            "applicability_hint": m.get("applicability_hint", "") or "",
-        })
+        cost_saved = float(m.get("annual_savings_gbp", 0) or 0)
+        carbon_saved = round(kwh * UK_ELECTRICITY_CO2_FACTOR, 4)
+        simple_payback = float(m.get("simple_payback_years", 0) or 0)
+        implementation_cost = float(m.get("capex_gbp", 0) or 0)
+        candidates.append(
+            {
+                "measure_code": m.get("code", ""),
+                "measure_label": m.get("title", ""),
+                # Legacy numeric fields kept for backwards compatibility
+                "kwh_saved": kwh,
+                "cost_saved": cost_saved,
+                "carbon_saved": carbon_saved,
+                "simple_payback": simple_payback,
+                # Standardised 5 fields used by the report and validation
+                "estimated_annual_kwh_saved": kwh,
+                "estimated_annual_saving_gbp": cost_saved,
+                "estimated_implementation_cost_gbp": implementation_cost,
+                "payback_years": simple_payback,
+                "estimated_annual_co2_saved_tonnes": carbon_saved,
+                "applicability_hint": m.get("applicability_hint", "") or "",
+            }
+        )
 
     # 3) RAG retrieval
     sector = (answers.get("sector") or "").strip() or None
@@ -113,10 +127,8 @@ def run_recommendation_pipeline(
     if exec_summary is None:
         exec_summary = ""
 
-    # 7) Deterministic validation of recommendations
+    # 7) Deterministic validation of recommendations (also attaches 5 standard fields)
     try:
-        from .validation import validate_recommendations
-
         merged_recs = validate_recommendations(
             baseline=baseline_summary,
             candidates=candidates,

@@ -16,6 +16,12 @@ def test_refrigeration_zero_load():
     assert r["cost_saved"] == 0
     assert r["carbon_saved"] == 0
     assert r["simple_payback"] is None
+    # Normalised fields
+    assert r["estimated_annual_kwh_saved"] == 0
+    assert r["estimated_annual_saving_gbp"] == 0
+    assert r["estimated_implementation_cost_gbp"] is None
+    assert r["payback_years"] is None
+    assert r["estimated_annual_co2_saved_tonnes"] == 0
 
 
 def test_refrigeration_typical_from_total_electric():
@@ -32,3 +38,9 @@ def test_refrigeration_typical_from_total_electric():
     assert _close(r["kwh_saved"], expect_kwh)
     assert _close(r["cost_saved"], expect_cost)
     assert _close(r["carbon_saved"], expect_carbon)
+    # Normalised fields
+    assert _close(r["estimated_annual_kwh_saved"], expect_kwh)
+    assert _close(r["estimated_annual_saving_gbp"], expect_cost)
+    assert r["estimated_implementation_cost_gbp"] is None
+    assert r["payback_years"] is None
+    assert _close(r["estimated_annual_co2_saved_tonnes"], expect_carbon)

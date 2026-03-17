@@ -21,6 +21,12 @@ def test_lighting_zero_fittings() -> None:
     assert result["kwh_saved"] == 0.0
     assert result["cost_saved"] == 0.0
     assert result["carbon_saved"] == 0.0
+    # New normalised fields
+    assert result["estimated_annual_kwh_saved"] == 0.0
+    assert result["estimated_annual_saving_gbp"] == 0.0
+    assert result["estimated_implementation_cost_gbp"] is None
+    assert result["payback_years"] is None
+    assert result["estimated_annual_co2_saved_tonnes"] == 0.0
 
 
 def test_lighting_typical_upgrade() -> None:
@@ -48,4 +54,10 @@ def test_lighting_typical_upgrade() -> None:
     assert _almost_equal(result["kwh_saved"], kwh_saved_expected)
     assert _almost_equal(result["cost_saved"], cost_saved_expected)
     assert _almost_equal(result["carbon_saved"], carbon_saved_expected)
+    # Normalised fields mirror core values when implementation_cost_gbp is not provided.
+    assert _almost_equal(result["estimated_annual_kwh_saved"], kwh_saved_expected)
+    assert _almost_equal(result["estimated_annual_saving_gbp"], cost_saved_expected)
+    assert result["estimated_implementation_cost_gbp"] is None
+    assert result["payback_years"] is None
+    assert _almost_equal(result["estimated_annual_co2_saved_tonnes"], carbon_saved_expected)
 

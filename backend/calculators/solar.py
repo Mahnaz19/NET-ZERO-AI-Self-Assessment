@@ -26,6 +26,7 @@ def calculate_solar(
     electricity_rate: float = 0.30,
     export_rate: float = 0.06,
     cost: float | None = None,
+    implementation_cost_gbp: float | None = None,
 ) -> dict:
     """
     Deterministic PV solar generation and savings calculator.
@@ -49,6 +50,8 @@ def calculate_solar(
         raise ValueError("electricity_rate and export_rate must be non-negative")
     if cost is not None and cost < 0:
         raise ValueError("cost must be non-negative when provided")
+    if implementation_cost_gbp is not None and implementation_cost_gbp < 0:
+        raise ValueError("implementation_cost_gbp must be non-negative when provided")
 
     annual_generation = system_kwp * generation_factor * orientation_factor
     self_consumed_kwh = annual_generation * self_consumption_rate
@@ -59,9 +62,11 @@ def calculate_solar(
     # ELECTRICITY_CO2_FACTOR is in kgCO2e/kWh; convert to tonnes.
     carbon_saving_tonnes = (annual_generation * ELECTRICITY_CO2_FACTOR) / 1000.0
 
+    effective_cost = implementation_cost_gbp if implementation_cost_gbp is not None else cost
+
     simple_payback: float | None = None
-    if cost is not None and annual_savings > 0:
-        simple_payback = cost / annual_savings
+    if effective_cost is not None and annual_savings > 0:
+        simple_payback = effective_cost / annual_savings
 
     result = SolarResult(
         annual_generation=annual_generation,
@@ -71,5 +76,16 @@ def calculate_solar(
         carbon_saving=carbon_saving_tonnes,
         simple_payback=simple_payback,
     )
-    return result.to_dict()
+    out = result.to_dict()
+    out.update(
+        {
+            # For solar we treat the self-consumed generation as the effective kWh "saved"
+            "estimated_annual_kwh_saved": self_consumed_kwh,
+            "estimated_annual_saving_gbp": annual_savings,
+            "estimated_implementation_cost_gbp": effective_cost,
+            "payback_years": simple_payback,
+            "estimated_annual_co2_saved_tonnes": carbon_saving_tonnes,
+        }
+    )
+    return out
 
