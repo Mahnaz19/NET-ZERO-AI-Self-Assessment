@@ -112,34 +112,19 @@ def run_recommendation_pipeline(
     exec_summary = llm_out.get("executive_summary")
     if exec_summary is None:
         exec_summary = ""
-    # Validate each recommendation has required fields (allow extras)
-    required_rec_keys = {"measure_code", "recommendation_text", "priority", "confidence"}
-    for i, r in enumerate(recs):
-        if not isinstance(r, dict) or not required_rec_keys.issubset(r.keys()):
-            logger.warning(
-                "LLM recommendation[%s] missing required keys for submission_id=%s",
-                i, submission_id,
-            )
-            return {"error": True, "message": "LLM recommendation(s) missing required fields"}
 
-    # Merge deterministic numbers into recommendations by measure_code
-    candidate_by_code = {c["measure_code"]: c for c in candidates}
-    merged_recs = []
-    for r in recs:
-        code = r.get("measure_code") or ""
-        det = candidate_by_code.get(code, {})
-        merged_recs.append({
-            "measure_code": code,
-            "score": r.get("score"),
-            "recommendation_text": r.get("recommendation_text") or "",
-            "priority": r.get("priority"),
-            "confidence": r.get("confidence"),
-            "kwh_saved": det.get("kwh_saved"),
-            "cost_saved": det.get("cost_saved"),
-            "carbon_saved": det.get("carbon_saved"),
-            "simple_payback": det.get("simple_payback"),
-            "applicability_hint": det.get("applicability_hint"),
-        })
+    # 7) Deterministic validation of recommendations
+    try:
+        from .validation import validate_recommendations
+
+        merged_recs = validate_recommendations(
+            baseline=baseline_summary,
+            candidates=candidates,
+            llm_recs=recs,
+        )
+    except Exception as e:  # noqa: BLE001
+        logger.exception("Recommendation validation failed for submission_id=%s: %s", submission_id, e)
+        return {"error": True, "message": f"Recommendation validation failed: {e}"}
 
     report = {
         "executive_summary": exec_summary,
@@ -148,7 +133,7 @@ def run_recommendation_pipeline(
         "candidates": candidates,
     }
 
-    # 6) Persist
+    # 8) Persist
     updated = crud.update_report(db, submission_id, report, status="ready")
     if not updated:
         raise RuntimeError(f"Failed to update report for submission {submission_id}")
