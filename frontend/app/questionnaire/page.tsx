@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { QuestionnaireForm } from "@/components/QuestionnaireForm";
+import { LastSubmissionLink } from "@/components/LastSubmissionLink";
 
 export default function QuestionnairePage() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function QuestionnairePage() {
           Provide details about your business, building, and energy use so we
           can estimate your baseline and identify suitable measures.
         </p>
+        <LastSubmissionLink />
       </header>
 
       <QuestionnaireForm

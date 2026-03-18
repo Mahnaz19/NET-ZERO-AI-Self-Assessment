@@ -1,3 +1,5 @@
+import { LastSubmissionLink } from "@/components/LastSubmissionLink";
+
 export default function Home() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-16">
@@ -21,6 +23,7 @@ export default function Home() {
             later. It usually takes around{" "}
             <span className="font-medium">10–15 minutes</span> to complete.
           </p>
+          <LastSubmissionLink />
         </div>
         <div>
           <a

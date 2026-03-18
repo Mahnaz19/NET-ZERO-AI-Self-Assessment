@@ -9,6 +9,7 @@ import { apiClient, type SubmitQuestionnaireResponse } from "@/lib/apiClient";
 import { SubmitButton } from "@/components/SubmitButton";
 
 const STORAGE_KEY = "netzero-questionnaire-draft";
+const LAST_SUBMISSION_KEY = "netzero-last-submission-id";
 
 export default function QuestionnaireConfirmPage() {
   const router = useRouter();
@@ -67,8 +68,9 @@ export default function QuestionnaireConfirmPage() {
         body,
       );
       window.localStorage.removeItem(STORAGE_KEY);
-      const submissionId = res.data.submissionId ?? res.data.id;
-      router.push(`/submission/${encodeURIComponent(String(submissionId))}`);
+      const submissionId = String(res.data.submissionId ?? res.data.id);
+      window.localStorage.setItem(LAST_SUBMISSION_KEY, submissionId);
+      router.push(`/submission/${encodeURIComponent(submissionId)}`);
     } catch (err: unknown) {
       let message: string | null = null;
       if (err && typeof err === "object" && "response" in err) {
