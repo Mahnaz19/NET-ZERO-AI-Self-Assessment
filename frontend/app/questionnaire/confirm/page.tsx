@@ -57,20 +57,37 @@ export default function QuestionnaireConfirmPage() {
         return;
       }
       const payload = clearHiddenFields(values, questionnaireFields);
+      const body = {
+        business_name: payload.business_name ?? null,
+        postcode: payload.site_postcode ?? null,
+        answers: payload as Record<string, unknown>,
+      };
       const res = await apiClient.post<SubmitQuestionnaireResponse>(
         "/api/submit",
-        {
-          business_name: payload.business_name,
-          postcode: payload.site_postcode,
-          answers: payload,
-        },
+        body,
       );
       window.localStorage.removeItem(STORAGE_KEY);
       const submissionId = res.data.submissionId ?? res.data.id;
       router.push(`/submission/${encodeURIComponent(String(submissionId))}`);
-    } catch {
+    } catch (err: unknown) {
+      let message: string | null = null;
+      if (err && typeof err === "object" && "response" in err) {
+        const res = (err as { response?: { data?: { detail?: unknown } } })
+          .response;
+        const detail = res?.data?.detail;
+        if (typeof detail === "string") message = detail;
+        else if (Array.isArray(detail))
+          message = detail
+            .map((m) =>
+              m && typeof m === "object" && "msg" in m
+                ? String((m as { msg: string }).msg)
+                : String(m),
+            )
+            .join(", ");
+      }
       setError(
-        "There was a problem submitting your questionnaire. Please try again.",
+        message ||
+          "There was a problem submitting your questionnaire. Please try again.",
       );
     } finally {
       setSubmitting(false);
