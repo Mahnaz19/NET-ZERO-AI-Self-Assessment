@@ -1,15 +1,16 @@
 "use client";
 
+import { use } from "react";
 import { useRouter } from "next/navigation";
 import { SubmissionStatus } from "@/components/SubmissionStatus";
 
 interface PageProps {
-  params: { submissionId: string };
+  params: Promise<{ submissionId: string }>;
 }
 
 export default function SubmissionStatusPage({ params }: PageProps) {
   const router = useRouter();
-  const { submissionId } = params;
+  const { submissionId } = use(params);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-4 py-10">
