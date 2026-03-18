@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .db import Base, engine
@@ -15,6 +16,13 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="NetZero AI Self-Assessment Backend",
         version="0.1.0",
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     # In dev we auto-create tables. For production, use migrations instead.
