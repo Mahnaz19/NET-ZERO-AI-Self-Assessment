@@ -3,99 +3,707 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NetZero Report</title>
+  <title>Energy Assessment Report</title>
   <style>
     * { box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, sans-serif; font-size: 12px; line-height: 1.5; color: #1f2937; margin: 0; padding: 24px; max-width: 800px; margin-left: auto; margin-right: auto; }
-    h1 { font-size: 20px; font-weight: 700; margin: 0 0 8px 0; color: #111827; }
-    h2 { font-size: 14px; font-weight: 600; margin: 20px 0 8px 0; color: #374151; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
-    .summary { background: #f9fafb; border-radius: 6px; padding: 12px 16px; margin: 12px 0; border-left: 4px solid #3b82f6; }
-    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 11px; }
-    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }
-    th { background: #f3f4f6; font-weight: 600; color: #374151; }
-    tr:nth-child(even) { background: #fafafa; }
-    .rec-text { max-width: 320px; }
+    @page { size: A4; margin: 18mm 14mm; }
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.45;
+      color: #1f2937;
+      margin: 0;
+      background: #ffffff;
+    }
+    :root {
+      --brand: #93008a;
+      --brand-light: #f6edf7;
+      --brand-mid: #e9d7ec;
+      --ink: #1f2937;
+    }
+    .cover {
+      margin-bottom: 0;
+      min-height: 240mm;
+      page-break-after: always;
+      text-align: center;
+      color: var(--brand);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+    .cover-eyebrow,
+    .cover h1,
+    .cover .sub,
+    .cover .sub-small,
+    .cover .sub-report {
+      font-size: 40px;
+      font-weight: 700;
+      color: var(--brand);
+      margin: 0;
+      line-height: 1.2;
+    }
+    .cover .sub-report { white-space: nowrap; }
+    .meta {
+      display: table;
+      width: 100%;
+      margin-top: 10px;
+      border-collapse: collapse;
+    }
+    .meta-row {
+      display: table-row;
+    }
+    .meta-label, .meta-value {
+      display: table-cell;
+      padding: 4px 6px;
+      border-bottom: 1px solid #e5e7eb;
+      vertical-align: top;
+    }
+    .meta-label { width: 220px; font-weight: 600; color: #374151; background: #f9fafb; }
+    .section {
+      margin-top: 12px;
+      page-break-inside: avoid;
+    }
+    .no-break-after { page-break-after: avoid; }
+    .no-break-before { page-break-before: avoid; }
+    .section-tight { margin-top: 16px; }
+    .table-gap { height: 10px; }
+    .section h2 {
+      font-size: 16px;
+      margin: 0 0 6px 0;
+      color: #111827;
+      border-bottom: 2px solid var(--brand);
+      padding-bottom: 4px;
+    }
+    .summary-box { background: #faf5fb; border: 1px solid var(--brand-mid); border-left: 4px solid var(--brand); border-radius: 6px; padding: 10px 12px; }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+    th, td {
+      border: 1px solid #d1d5db;
+      padding: 6px 7px;
+      vertical-align: top;
+      overflow-wrap: break-word;
+      word-break: normal;
+      hyphens: auto;
+    }
+    th {
+      background: var(--brand-light);
+      color: #3a1740;
+      font-size: 10px;
+      text-transform: uppercase;
+      line-height: 1.25;
+      white-space: normal;
+    }
     .num { text-align: right; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 500; }
-    .badge-high { background: #d1fae5; color: #065f46; }
-    .badge-medium { background: #fef3c7; color: #92400e; }
-    .badge-low { background: #e5e7eb; color: #4b5563; }
-    footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #6b7280; }
+    .tiny { font-size: 11px; color: #6b7280; }
+    .small { font-size: 12px; }
+    .pb { page-break-before: always; }
+    .pill {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .pill-high { background: #dcfce7; color: #166534; }
+    .pill-medium { background: #fef3c7; color: #92400e; }
+    .pill-low { background: #e5e7eb; color: #4b5563; }
+    .two-col { display: table; width: 100%; table-layout: fixed; }
+    .two-col > div {
+      display: table-cell;
+      width: 50%;
+      vertical-align: top;
+      padding-right: 10px;
+    }
+    .callout { border: 1px solid var(--brand-mid); background: var(--brand-light); border-radius: 6px; padding: 8px 10px; margin-top: 8px; }
+    .recommendations-summary {
+      table-layout: fixed;
+      font-size: 12px;
+    }
+    .recommendations-summary col.c1 { width: 22%; }
+    .recommendations-summary col.c2 { width: 7%; }
+    .recommendations-summary col.c3 { width: 10%; }
+    .recommendations-summary col.c4 { width: 13%; }
+    .recommendations-summary col.c5 { width: 13%; }
+    .recommendations-summary col.c6 { width: 13%; }
+    .recommendations-summary col.c7 { width: 10%; }
+    .recommendations-summary col.c8 { width: 12%; }
+    .recommendations-summary td,
+    .recommendations-summary th {
+      padding: 5px 4px;
+      line-height: 1.2;
+      white-space: normal;
+    }
+    .recommendations-summary .num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .recommendations-summary thead th {
+      background: #93008a;
+      color: #ffffff;
+      font-size: 11px;
+      text-transform: uppercase;
+      border-color: #7a007f;
+    }
+    .recommendations-summary tbody tr:nth-child(even) {
+      background: #f6edf7;
+    }
+    .recommendations-summary tbody tr:nth-child(odd) {
+      background: #ffffff;
+    }
+    .summary-purple-box {
+      margin-top: 10px;
+      background: #93008a;
+      color: #ffffff;
+      padding: 12px 14px;
+      border-radius: 2px;
+      font-size: 11px;
+      line-height: 1.35;
+    }
+    .total-row td {
+      font-weight: 700;
+    }
+    .steps-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      table-layout: fixed;
+    }
+    .steps-table thead th {
+      background: #93008a;
+      color: #ffffff;
+      padding: 8px 6px;
+      border: 1px solid #b15aaf;
+      font-size: 12px;
+    }
+    .steps-table td {
+      border: 1px solid #d1d5db;
+      padding: 8px 6px;
+      font-size: 13px;
+      vertical-align: top;
+      word-break: normal;
+    }
+    ul.clean { margin: 6px 0 0 16px; padding: 0; }
+    ul.clean li { margin: 0 0 4px 0; }
+    .label { font-weight: 600; color: #374151; }
+    .company-info td:nth-child(1),
+    .company-info td:nth-child(3) {
+      background: #93008a;
+      color: #ffffff;
+      font-weight: 700;
+    }
+    .business-overview-table td:nth-child(1),
+    .business-overview-table td:nth-child(3) {
+      background: #93008a;
+      color: #ffffff;
+      font-weight: 700;
+    }
+    .site-assessment-table td:nth-child(1) {
+      background: #93008a;
+      color: #ffffff;
+      font-weight: 700;
+    }
+    .site-assessment-table td {
+      font-size: 11px;
+      padding: 4px 7px;
+      line-height: 1.25;
+      white-space: normal;
+    }
+    .focus-block {
+      border: 1px solid #cfcfcf;
+      margin: 10px 0 14px 0;
+    }
+    .focus-block .focus-title {
+      background: #93008a;
+      color: #ffffff;
+      font-weight: 700;
+      padding: 9px 12px;
+      font-size: 12px;
+    }
+    .focus-block .focus-body {
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .purple-title {
+      color: #93008a !important;
+      font-size: 18px !important;
+      border-bottom: 0 !important;
+      margin-bottom: 8px !important;
+      padding-bottom: 0 !important;
+    }
+    .energy-table thead th {
+      background: #93008a;
+      color: #ffffff;
+      font-size: 12px;
+      text-transform: none;
+      line-height: 1.25;
+    }
+    .energy-table td {
+      font-size: 12px;
+    }
+    .detail-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      table-layout: fixed;
+    }
+    .detail-key {
+      background: #93008a;
+      color: #ffffff;
+      font-weight: 700;
+      padding: 10px 8px;
+      border: 1px solid #b15aaf;
+      vertical-align: top;
+      width: 32%;
+    }
+    .detail-value {
+      padding: 10px 10px;
+      border: 1px solid #d1d5db;
+      vertical-align: top;
+      white-space: normal;
+      word-break: normal;
+      overflow-wrap: break-word;
+    }
+    .detail-value p {
+      margin: 0;
+    }
+    footer {
+      margin-top: 16px;
+      padding-top: 10px;
+      border-top: 1px solid #e5e7eb;
+      color: #6b7280;
+      font-size: 9px;
+    }
   </style>
 </head>
 <body>
-  <h1>NetZero AI Self-Assessment Report</h1>
+  {% set a = report.answers or {} %}
+  {% set baseline = report.baseline or {} %}
 
-  <h2>Executive summary</h2>
-  <div class="summary">{{ report.executive_summary or 'No summary available.' }}</div>
+  <section class="cover">
+    <p class="cover-eyebrow">Pilot Business Energy Advice Service Standard</p>
+    <h1>Energy Assessment</h1>
+    <p class="sub">Company Name: {{ report.business_name or "Business" }}</p>
+    <p class="sub-small">PURN: {{ report.report_id or "-" }}</p>
+    <p class="sub-report">Energy Assessment Report</p>
+  </section>
 
-  <h2>Baseline</h2>
-  <table>
-    <tr><th>Annual kWh</th><th>Annual cost (GBP)</th><th>Tariff (p/kWh)</th><th>Annual CO2 (tonnes)</th></tr>
-    <tr>
-      <td class="num">{{ report.baseline.annual_kwh | default(0) }}</td>
-      <td class="num">{{ report.baseline.annual_cost_gbp | default(0) }}</td>
-      <td class="num">{{ report.baseline.tariff_p_per_kwh | default(0) }}</td>
-      <td class="num">{{ report.baseline.annual_co2_tonnes | default(0) }}</td>
-    </tr>
-  </table>
+  <section class="section">
+    <h2>Management Summary</h2>
+    <div class="summary-box">
+      The role of this assessment is to provide you with a baseline data set identifying where your businesses' main energy use is occurring and provide recommendations and an action plan for what you can do to minimise energy usage, save money, and reduce your carbon emissions.
+    </div>
+    <p class="small">In more detail, the objectives of the assessment are to:</p>
+    <ul class="clean small">
+      <li>Provide you with an understanding of your business energy usage on site.</li>
+      <li>Highlight areas of energy efficiency and inefficiency.</li>
+      <li>Work with you to identify and prioritise actions that can be taken to improve energy efficiency.</li>
+      <li>Provide an action plan for next steps, including possible support for implementation.</li>
+    </ul>
+    <p class="small">This report presents the results of a government funded energy assessment at {{ report.business_name or "the assessed business" }}.</p>
+  </section>
 
-  <h2>Recommendations</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Measure</th>
-        <th class="rec-text">Recommendation</th>
-        <th>Priority</th>
-        <th>Confidence</th>
-        <th class="num">Annual kWh saved</th>
-        <th class="num">Annual saving (GBP)</th>
-        <th class="num">Implementation cost (GBP)</th>
-        <th class="num">Payback (years)</th>
-        <th class="num">Annual CO₂ saved (tonnes)</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for rec in report.recommendations %}
-      <tr>
-        <td>{{ rec.priority or loop.index }}</td>
-        <td>{{ rec.measure_code }}</td>
-        <td class="rec-text">{{ rec.recommendation_text or '-' }}</td>
-        <td>{{ rec.priority or '-' }}</td>
-        <td><span class="badge badge-{{ (rec.confidence or 'medium') | lower }}">{{ rec.confidence or 'medium' }}</span></td>
-        <td class="num">
-          {{ rec.estimated_annual_kwh_saved
-             if rec.estimated_annual_kwh_saved is not none
-             else (rec.kwh_saved if rec.kwh_saved is not none else '-') }}
-        </td>
-        <td class="num">
-          {{ rec.estimated_annual_saving_gbp
-             if rec.estimated_annual_saving_gbp is not none
-             else (rec.cost_saved if rec.cost_saved is not none else '-') }}
-        </td>
-        <td class="num">
-          {{ rec.estimated_implementation_cost_gbp
-             if rec.estimated_implementation_cost_gbp is not none
-             else '-' }}
-        </td>
-        <td class="num">
-          {{ rec.payback_years
-             if rec.payback_years is not none
-             else (rec.simple_payback if rec.simple_payback is not none else '-') }}
-        </td>
-        <td class="num">
-          {{ rec.estimated_annual_co2_saved_tonnes
-             if rec.estimated_annual_co2_saved_tonnes is not none
-             else (rec.carbon_saved if rec.carbon_saved is not none else '-') }}
-        </td>
-      </tr>
+  <section class="section section-tight">
+    <h2>Company Information</h2>
+    <table class="company-info">
+      <tbody>
+        <tr><td class="label">Business Name</td><td>{{ report.business_name or "-" }}</td><td class="label">Business Activity</td><td>{{ a.get("sector", "Not specified") }}</td></tr>
+        <tr><td class="label">Address</td><td>{{ a.get("site_address_line1", "-") }}</td><td class="label">Postcode</td><td>{{ report.site_postcode or "-" }}</td></tr>
+        <tr><td class="label">Primary Contact</td><td>{{ a.get("primary_contact_name", "-") }}</td><td class="label">Contact Email</td><td>{{ a.get("primary_contact_email", "-") }}</td></tr>
+        <tr><td class="label">Telephone</td><td>{{ a.get("primary_contact_phone", "-") }}</td><td class="label">Employees</td><td>{{ a.get("employees_on_site", "-") }}</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="section section-tight">
+    <h2>Business Overview</h2>
+    <h3 class="small">Site Information</h3>
+    <table class="business-overview-table">
+      <tbody>
+        <tr><td class="label">Building Type</td><td>{{ a.get("building_type", "Not specified") }}</td><td class="label">Ownership status</td><td>{{ a.get("ownership_status", "Not specified") }}</td></tr>
+        <tr><td class="label">Smart meter</td><td>{{ a.get("smart_meter", "Not specified") }}</td><td class="label">Days open per week</td><td>{{ a.get("days_open_per_week", "Not specified") }}</td></tr>
+        <tr><td class="label">Weekly operational hours</td><td>{{ a.get("weekly_operational_hours", "Not specified") }}</td><td class="label">Floor area band</td><td>{{ a.get("floor_area_band", "Not specified") }}</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="section pb">
+    <h2>Site Assessment for Company</h2>
+    <table class="site-assessment-table">
+      <tbody>
+        <tr><td class="label">Date of issue</td><td>{{ report.issued_at or "-" }}</td></tr>
+        <tr><td class="label">Implementation timeframe</td><td>{{ a.get("implementation_timeframe", "Not specified") }}</td></tr>
+        <tr><td class="label">EPC known</td><td>{{ a.get("epc_known", "Not specified") }}</td></tr>
+        <tr><td class="label">EPC rating</td><td>{{ a.get("epc_rating", "Not specified") }}</td></tr>
+        <tr><td class="label">Building age band</td><td>{{ a.get("building_age_band", "Not specified") }}</td></tr>
+        <tr><td class="label">Insulation level</td><td>{{ a.get("insulation_level", "Not specified") }}</td></tr>
+        <tr><td class="label">Glazing type</td><td>{{ a.get("glazing_type", "Not specified") }}</td></tr>
+        <tr><td class="label">Lighting</td><td>{{ a.get("lighting_type", "Not specified") }}</td></tr>
+        <tr><td class="label">Heating &amp; Cooling</td><td>{{ a.get("heating_main_type", "Not specified") }}{% if a.get("cooling_type") %}; Cooling: {{ a.get("cooling_type") }}{% endif %}</td></tr>
+        <tr><td class="label">Operational Equipment &amp; Processes</td><td>{{ a.get("process_load_types", []) | join(", ") if a.get("process_load_types") else "Not specified" }}</td></tr>
+        <tr><td class="label">Maintenance Processes</td><td>{{ a.get("maintenance_processes", "Routine maintenance assumed.") }}</td></tr>
+        <tr><td class="label">Energy Generation</td><td>{% if a.get("consider_solar_pv") == "Yes" %}Solar PV considered{% else %}No on-site generation recorded{% endif %}</td></tr>
+        {# Add questionnaire fields that aren't already represented elsewhere in this report (no extra appendix section). #}
+        {% set known_keys = [
+          "business_name",
+          "sector",
+          "site_address_line1",
+          "site_postcode",
+          "primary_contact_name",
+          "primary_contact_email",
+          "primary_contact_phone",
+          "employees_on_site",
+          "days_open_per_week",
+          "weekly_operational_hours",
+          "ownership_status",
+          "building_type",
+          "smart_meter",
+          "floor_area_band",
+          "implementation_timeframe",
+          "epc_known",
+          "epc_rating",
+          "building_age_band",
+          "insulation_level",
+          "glazing_type",
+          "lighting_type",
+          "heating_main_type",
+          "cooling_type",
+          "process_load_types",
+          "maintenance_processes",
+          "consider_solar_pv",
+          "primary_priority",
+          "detailed_reason_for_assessment",
+          "electricity_kwh_annual",
+          "electricity_cost_annual_ex_vat",
+          "gas_kwh_annual",
+          "gas_cost_annual_ex_vat",
+          "uses_gas"
+        ] %}
+        {% for key, value in a|dictsort %}
+          {% if key not in known_keys and value is not none and (value|string|trim) != '' and value != [] and value != {} %}
+            <tr>
+              <td class="label">{{ key|replace("_"," ")|title }}</td>
+              <td style="white-space: normal;">
+                {% if value is string %}{{ value|trim }}{% else %}{{ value }}{% endif %}
+              </td>
+            </tr>
+          {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="section">
+    <h2>Why these energy savings matter?</h2>
+    <div class="focus-block">
+      <div class="focus-title">Reason for Assessment</div>
+      <div class="focus-body">{{ a.get("primary_priority", "Not specified") }}</div>
+    </div>
+    <div class="focus-block">
+      <div class="focus-title">Detailed Reason for Assessment</div>
+      <div class="focus-body">{{ a.get("detailed_reason_for_assessment", "The organisation is seeking support to identify practical opportunities to reduce its energy consumption and associated carbon emissions, driven by a commitment to improving environmental performance and managing rising operational costs. With long operating hours and reliance on electricity-intensive equipment, the business aims to gain a clearer understanding of where efficiencies can be achieved and which measures will deliver the greatest long-term benefit.") }}</div>
+    </div>
+    <div class="focus-block">
+      <div class="focus-title">What are the company objectives regarding the review?</div>
+      <div class="focus-body">The primary objective of this review is to identify practical and cost-effective opportunities to reduce the organisation’s carbon footprint while maintaining smooth operational performance. By focusing on measures that lower electricity consumption such as improved control strategies and targeted efficiency upgrades; the business aims to achieve measurable reductions in emissions and strengthen its long-term sustainability position.</div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="focus-block">
+      <div class="focus-title">Proposed action plan for recommendations</div>
+      <div class="focus-body">Key opportunities include implementing high-priority efficiency measures, confirming implementation cost via supplier quotes, and tracking delivered savings against this baseline.</div>
+    </div>
+    <h2 class="purple-title">Current Annualised Energy Consumption on Site</h2>
+    <p class="small">{{ report.business_name or "The business" }} uses Electricity{% if a.get("uses_gas") == "Yes" %} and Gas{% endif %}.</p>
+    <table class="energy-table">
+      <thead>
+        <tr>
+          <th>Utility</th>
+          <th class="num">Consumption (kWh/yr)</th>
+          <th class="num">Cost (£ excl. VAT)</th>
+          <th class="num">Annual Carbon Footprint (tCO2e/yr)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set uses_gas = a.get("uses_gas") == "Yes" %}
+        {% set electricity_kwh_annual = a.get("electricity_kwh_annual", 0) | float %}
+        {% set electricity_cost_annual_ex_vat = a.get("electricity_cost_annual_ex_vat", 0) | float %}
+        {% set gas_kwh_annual = a.get("gas_kwh_annual", 0) | float %}
+        {% set gas_cost_annual_ex_vat = a.get("gas_cost_annual_ex_vat", 0) | float %}
+        {% set electricity_co2_tonnes = electricity_kwh_annual * 0.19553 / 1000.0 %}
+        {% set gas_co2_tonnes = gas_kwh_annual * 0.18296 / 1000.0 %}
+        <tr>
+          <td>Electricity</td>
+          <td class="num">{{ electricity_kwh_annual }}</td>
+          <td class="num">{{ electricity_cost_annual_ex_vat }}</td>
+          <td class="num">{{ "%.2f"|format(electricity_co2_tonnes) }}</td>
+        </tr>
+        {% if uses_gas %}
+        <tr>
+          <td>Gas</td>
+          <td class="num">{{ gas_kwh_annual }}</td>
+          <td class="num">{{ gas_cost_annual_ex_vat }}</td>
+          <td class="num">{{ "%.2f"|format(gas_co2_tonnes) }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td><strong>Total</strong></td>
+          <td class="num"><strong>{{ electricity_kwh_annual + (gas_kwh_annual if uses_gas else 0) }}</strong></td>
+          <td class="num"><strong>{{ electricity_cost_annual_ex_vat + (gas_cost_annual_ex_vat if uses_gas else 0) }}</strong></td>
+          <td class="num"><strong>{{ "%.2f"|format(electricity_co2_tonnes + (gas_co2_tonnes if uses_gas else 0)) }}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="section">
+    <h2 class="purple-title">Assumptions</h2>
+    <p class="small">In addition to the above, the following assumptions have been used throughout this report:</p>
+    <p class="small"><strong>Weekly operations hours:</strong> {{ a.get("weekly_operational_hours", "Not specified") }}</p>
+    <p class="small"><strong>Number of workers on site:</strong> {{ a.get("employees_on_site", "Not specified") }}</p>
+    <p class="small"><strong>Payback period:</strong> Simple Payback Method</p>
+    <p class="small"><strong>Representativeness:</strong> The assessment utilised information provided by the questionnaire responses, including running hours, power ratings, and practices, to offer recommendations and saving figures. In instances where complete data was unavailable, standard assumptions were employed.</p>
+    <p class="small"><strong>Prices:</strong> The assessment considered an effective rate of Electricity: {{ baseline.tariff_p_per_kwh | default(30) }} p/kWh</p>
+    <p class="small"><strong>Organisation performance and risks:</strong> All the utilities included like electricity, gas, etc. was extrapolated to represent 12 months.</p>
+    <p class="small"><strong>Carbon impact factors:</strong>We have used (2026 CO2e UK Government conversion factors)</p>
+    <p class="small">● 0.19553 kgCO2e per kWh Electricity</p>
+  </section>
+
+  <section class="section no-break-after">
+    <h2 class="purple-title">Energy Data Analysis</h2>
+    {% set uses_gas = a.get("uses_gas") == "Yes" %}
+    {% set electricity_kwh_annual = a.get("electricity_kwh_annual", 0) | float %}
+    {% set electricity_cost_annual_ex_vat = a.get("electricity_cost_annual_ex_vat", 0) | float %}
+    {% set gas_kwh_annual = a.get("gas_kwh_annual", 0) | float %}
+    {% set gas_cost_annual_ex_vat = a.get("gas_cost_annual_ex_vat", 0) | float %}
+    {% set electricity_co2_tonnes = electricity_kwh_annual * 0.19553 / 1000.0 %}
+    {% set gas_co2_tonnes = gas_kwh_annual * 0.18296 / 1000.0 %}
+    <p class="small">The energy costs derived from the questionnaire responses indicate the site is paying approximately £{{ "%.2f"|format(electricity_cost_annual_ex_vat + (gas_cost_annual_ex_vat if uses_gas else 0)) }} per annum in electricity{% if uses_gas %} and gas{% endif %}.</p>
+
+    <p class="small" style="color:#93008a; font-size: 14px; margin-top: 14px;">Electricity</p>
+    <table class="energy-table">
+      <thead>
+        <tr>
+          <th>Month(s)</th>
+          <th>Consumption (kWh)</th>
+          <th>Cost (£)</th>
+          <th>Carbon (tCO2e)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>12</td>
+          <td>{{ "%.2f"|format(electricity_kwh_annual) }}</td>
+          <td>{{ "%.2f"|format(electricity_cost_annual_ex_vat) }}</td>
+          <td>{{ "%.2f"|format(electricity_co2_tonnes) }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    {% if uses_gas %}
+    <p class="small" style="color:#93008a; font-size: 14px; margin-top: 14px;">Gas</p>
+    <table class="energy-table">
+      <thead>
+        <tr>
+          <th>Month(s)</th>
+          <th>Consumption (kWh)</th>
+          <th>Cost (£)</th>
+          <th>Carbon (tCO2e)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>12</td>
+          <td>{{ "%.2f"|format(gas_kwh_annual) }}</td>
+          <td>{{ "%.2f"|format(gas_cost_annual_ex_vat) }}</td>
+          <td>{{ "%.2f"|format(gas_co2_tonnes) }}</td>
+        </tr>
+      </tbody>
+    </table>
+    {% endif %}
+  </section>
+
+  <section class="section section-tight no-break-before">
+    <h2>Annex 2: Administrative Information and Key Assumptions</h2>
+    <p class="small"><strong>Scope of the Energy Assessment</strong></p>
+    <ol class="small">
+      <li>A detailed assessment of the business energy usage based on submitted site and operational data.</li>
+      <li>Review of building fabric and major energy-using systems.</li>
+      <li>Identification of key issues and potential improvement opportunities.</li>
+      <li>Action plan focused on no/low-cost measures first, then investment measures.</li>
+      <li>Identification of potential support for implementation where available.</li>
+    </ol>
+
+  </section>
+
+  <section class="section">
+    <h2 class="purple-title">Energy Saving Recommendations - Summary</h2>
+    <p class="small">The recommendations identified are summarised in the table below. A more detailed description of each recommendation is included in the recommendations section.</p>
+    <table class="recommendations-summary">
+      <colgroup>
+        <col class="c1" />
+        <col class="c2" />
+        <col class="c3" />
+        <col class="c4" />
+        <col class="c5" />
+        <col class="c6" />
+        <col class="c7" />
+        <col class="c8" />
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Recommendation</th>
+          <th>Priority</th>
+          <th>Confidence</th>
+          <th class="num">Estimated annual energy saving (kWh/yr)</th>
+          <th class="num">Estimated annual saving (£ exc. VAT/yr)</th>
+          <th class="num">Estimated cost to implement (£ excl. VAT)</th>
+          <th class="num">Payback period</th>
+          <th class="num">Estimated annual carbon saving (tCO2e/yr)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set ns = namespace(kwh=0, gbp=0, capex=0, co2=0) %}
+        {% set uses_gas = a.get("uses_gas") == "Yes" %}
+        {% set electricity_kwh = a.get("electricity_kwh_annual", 0) | float %}
+        {% set electricity_cost = a.get("electricity_cost_annual_ex_vat", 0) | float %}
+        {% set gas_kwh = a.get("gas_kwh_annual", 0) | float %}
+        {% set gas_cost = a.get("gas_cost_annual_ex_vat", 0) | float %}
+        {% set total_kwh = electricity_kwh + (gas_kwh if uses_gas else 0) %}
+        {% set total_cost = electricity_cost + (gas_cost if uses_gas else 0) %}
+        {% set total_co2 = (electricity_kwh * 0.19553 / 1000.0) + (gas_kwh * 0.18296 / 1000.0 if uses_gas else 0) %}
+        {% for rec in report.recommendations %}
+        {% set kwh = rec.estimated_annual_kwh_saved if rec.estimated_annual_kwh_saved is not none else (rec.kwh_saved if rec.kwh_saved is not none else 0) %}
+        {% set gbp = rec.estimated_annual_saving_gbp if rec.estimated_annual_saving_gbp is not none else (rec.cost_saved if rec.cost_saved is not none else 0) %}
+        {% set capex = rec.estimated_implementation_cost_gbp if rec.estimated_implementation_cost_gbp is not none else 0 %}
+        {% set pb = rec.payback_years if rec.payback_years is not none else (rec.simple_payback if rec.simple_payback is not none else 0) %}
+        {% set co2 = rec.estimated_annual_co2_saved_tonnes if rec.estimated_annual_co2_saved_tonnes is not none else (rec.carbon_saved if rec.carbon_saved is not none else 0) %}
+        {% set ns.kwh = ns.kwh + (kwh|float) %}
+        {% set ns.gbp = ns.gbp + (gbp|float) %}
+        {% set ns.capex = ns.capex + (capex|float) %}
+        {% set ns.co2 = ns.co2 + (co2|float) %}
+        <tr>
+          <td><strong>{{ rec.measure_label or rec.measure_code or ("Recommendation " ~ loop.index) }}</strong></td>
+          <td>{{ rec.priority or loop.index }}</td>
+          <td>{{ (rec.confidence or "medium")|upper }}</td>
+          <td class="num">{{ "%.2f"|format(kwh|float) }}</td>
+          <td class="num">{{ "%.2f"|format(gbp|float) }}</td>
+          <td class="num">{{ "%.2f"|format(capex|float) }}</td>
+          <td class="num">{{ "%.2f"|format(pb|float) }}</td>
+          <td class="num">{{ "%.2f"|format(co2|float) }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">No recommendations were generated for this assessment.</td></tr>
+        {% endfor %}
+        <tr class="total-row">
+          <td><strong>Total</strong></td>
+          <td></td><td></td>
+          <td class="num"><strong>{{ "%.2f"|format(ns.kwh) }}</strong></td>
+          <td class="num"><strong>{{ "%.2f"|format(ns.gbp) }}</strong></td>
+          <td class="num"><strong>{{ "%.2f"|format(ns.capex) }}</strong></td>
+          <td class="num"></td>
+          <td class="num"><strong>{{ "%.2f"|format(ns.co2) }}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="tiny">The determination of the cost to implement for each recommendation relies on specific assumptions and necessitates precise assessment for each item. This accuracy can only be achieved through a comprehensive feasibility study conducted by a qualified specialist. (Please note any Estimated cost to implement provided above are indicative and subject to change at the delivery/procurement stage.) The variability of the payback period is contingent upon the cost of implementation.</p>
+
+    <div class="summary-purple-box">
+      {{ report.business_name or "the organisation" }} consumes
+      {{ "%.0f"|format(total_kwh) }} kWh/yr of Electricity{% if uses_gas %} and {{ "%.0f"|format(gas_kwh) }} kWh/yr of Natural Gas{% endif %}
+      which amounts to {{ "%.2f"|format(total_co2) }} tCO2e/yr and £{{ "%.0f"|format(total_cost) }} per year in energy and other costs.
+      {{ report.business_name or "the organisation" }} could achieve annual financial savings of £{{ "%.0f"|format(ns.gbp) }} and
+      {% if ns.co2 < 1 %}
+        {{ "%.2f"|format(ns.co2) }}
       {% else %}
-      <tr><td colspan="10">No recommendations.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+        {{ "%.0f"|format(ns.co2) }}
+      {% endif %}
+      tonnes of CO2e by implementing the recommendations within this report.
+    </div>
 
-  <footer>Generated from NetZero AI Self-Assessment. Figures are deterministic; narrative is from the assessment pipeline.</footer>
+    <p class="small">In summary, implementing the recommendations immediately will: Stop the organisation from incurring the cost of inaction of wasted energy and fuel. Maintain or improve organisation's energy efficiency relative to peer organisations.</p>
+  </section>
+
+  <section class="section pb">
+    <h2>Energy Assessment Recommendations - Detail</h2>
+    {% for rec in report.recommendations %}
+    <table class="detail-table">
+      <tbody>
+        <tr>
+          <td class="detail-key">Recommendation ID</td>
+          <td class="detail-value">
+            {{ rec.measure_label or rec.measure_code or ("Recommendation " ~ loop.index) }}
+          </td>
+        </tr>
+        <tr>
+          <td class="detail-key">Recommendation Description</td>
+          <td class="detail-value">{{ rec.recommendation_text or "-" }}</td>
+        </tr>
+        <tr><td class="detail-key">Estimated Annual Energy Saving [kWh/yr]</td><td class="detail-value">{{ rec.estimated_annual_kwh_saved if rec.estimated_annual_kwh_saved is not none else (rec.kwh_saved if rec.kwh_saved is not none else 0) }}</td></tr>
+        <tr><td class="detail-key">Estimated Annual Monetary Saving [£/yr]</td><td class="detail-value">{{ rec.estimated_annual_saving_gbp if rec.estimated_annual_saving_gbp is not none else (rec.cost_saved if rec.cost_saved is not none else 0) }}</td></tr>
+        <tr><td class="detail-key">Estimated cost to implement [£ (excl.VAT)]</td><td class="detail-value">{{ rec.estimated_implementation_cost_gbp if rec.estimated_implementation_cost_gbp is not none else 0 }}</td></tr>
+        <tr><td class="detail-key">Estimated Payback Period [yr]</td><td class="detail-value">{{ rec.payback_years if rec.payback_years is not none else (rec.simple_payback if rec.simple_payback is not none else 0) }}</td></tr>
+        <tr><td class="detail-key">Estimated Annual Carbon Saving [tonnes CO2e/yr]</td><td class="detail-value">{{ rec.estimated_annual_co2_saved_tonnes if rec.estimated_annual_co2_saved_tonnes is not none else (rec.carbon_saved if rec.carbon_saved is not none else 0) }}</td></tr>
+        <tr><td class="detail-key">Margin of Error in estimated savings [%]</td><td class="detail-value">20</td></tr>
+        <tr><td class="detail-key">Margin of Error in estimated cost [%]</td><td class="detail-value">20</td></tr>
+        <tr><td class="detail-key">Fuel type saved</td><td class="detail-value">Electricity{% if a.get("uses_gas") == "Yes" %} / Gas{% endif %}</td></tr>
+        <tr><td class="detail-key">Responsibility [owner or occupier]</td><td class="detail-value">{{ a.get("ownership_status", "Occupier") }}</td></tr>
+        <tr><td class="detail-key">Project timings</td><td class="detail-value">{{ a.get("implementation_timeframe", "Medium-Term") }}</td></tr>
+        <tr><td class="detail-key">Sources of Support</td><td class="detail-value">Government Grants / Local Authority support</td></tr>
+      </tbody>
+    </table>
+    <div class="table-gap"></div>
+    <table class="steps-table">
+      <thead>
+        <tr><th>Implementation Step</th><th>Owner of recommendation (key person/team)</th><th>Start date</th><th>Completion date</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Tender and obtain comparable quotes</td><td>{{ a.get("primary_contact_name", "Occupier") }}</td><td>TBC</td><td>TBC</td></tr>
+        <tr><td>Compare and analyse quotes</td><td>{{ a.get("primary_contact_name", "Occupier") }}</td><td>TBC</td><td>TBC</td></tr>
+        <tr><td>Apply for grant (if applicable)</td><td>{{ a.get("primary_contact_name", "Occupier") }}</td><td>TBC</td><td>TBC</td></tr>
+        <tr><td>Pre-install meetings and inductions</td><td>{{ a.get("primary_contact_name", "Occupier") }}</td><td>TBC</td><td>TBC</td></tr>
+        <tr><td>Installation / implementation</td><td>{{ a.get("primary_contact_name", "Occupier") }}</td><td>TBC</td><td>TBC</td></tr>
+      </tbody>
+    </table>
+    {% if not loop.last %}<div class="pb"></div>{% endif %}
+    {% else %}
+    <p class="small">No detailed recommendations available.</p>
+    {% endfor %}
+  </section>
+
+  <section class="section">
+    <h2>Disclaimer</h2>
+    <p class="small">
+      Whilst Aston have taken reasonable steps to ensure that the information contained within this document
+      is correct, you should be aware that the information contained within it may be incomplete, inaccurate
+      or may have become out of date. Accordingly, Aston make no warranties or representations of any kind as
+      to the content of this document or its accuracy and accept no liability whatsoever for the same including
+      for errors or omissions in it. Any person that makes use of this document does so at their own risk.
+      None of the above mentioned persons shall be liable.
+    </p>
+    <h2>Risk</h2>
+    <p class="small">
+      Due to uncertainties in the energy consumptions of certain plant due to lack of metering, and to a lack of
+      detailed information on plant and machinery, there is naturally some uncertainty in the actual potential for
+      energy savings and in some cases the practicality of achieving those savings. Some recommendations have
+      implications on other measures, which may result in a reduction in the savings in either/or proposal.
+      Accordingly, it is recommended that more detailed investigations should take place before implementation of
+      complex or expensive schemes.
+    </p>
+    <h2>Evaluation</h2>
+    <p class="small">
+      The Department of Energy Security and Net Zero is requesting consent to submit Letters of Authority to the
+      businesses current and future energy supplier(s) to enable evaluation of the Pilot BEAS. Businesses with
+      smart or advanced meters on site are asked to provide consent by completing the attached Letter of Authority.
+      Further information can be found in the Letter of Authority Guidance notes.
+    </p>
+  </section>
+
+  <footer>
+    Generated by NetZero AI Self-Assessment. This report is structured to mirror the pilot BEAS sample format using available submission data and deterministic outputs.
+  </footer>
 </body>
 </html>

@@ -47,7 +47,14 @@ def _get_report_or_400(db: Session, submission_id: int) -> dict:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=report.get("message", "Report generation previously failed."),
         )
-    return report
+    enriched = dict(report)
+    # Include submission metadata so renderers can produce a richer, branded report.
+    enriched.setdefault("report_id", str(submission.id))
+    enriched.setdefault("business_name", submission.business_name or "Business")
+    enriched.setdefault("site_postcode", submission.postcode)
+    enriched.setdefault("issued_at", submission.created_at.isoformat())
+    enriched.setdefault("answers", submission.raw_answers or {})
+    return enriched
 
 
 @router.post(
