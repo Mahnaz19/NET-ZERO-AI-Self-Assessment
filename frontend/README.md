@@ -1,82 +1,59 @@
-## NET-ZERO-AI-Self-Assessment Frontend
+## Frontend — NET-ZERO Self-Assessment
 
-This `frontend/` app is a Next.js (App Router) TypeScript application that implements:
+Next.js (App Router) TypeScript app for:
 
-- **Multi-step questionnaire UI** driven by the Excel spec in `data/raw/Minimum_Input_Questionnaire.xlsx`
-- **Submission flow** to `POST /api/questionnaire/submit` with status polling
-- **Report viewer** for `GET /api/reports/{reportId}` with **PDF download** via `GET /api/reports/generate_pdf?report_id={reportId}`
-- **Mock backend mode** for local development and Playwright tests
+- multi-step energy questionnaire
+- submission to the FastAPI backend with status polling
+- report viewing and PDF download
 
 ### Install
 
-From the repository root:
-
 ```bash
 cd frontend
-npm install
+npm ci
 ```
 
-### Run (real backend)
+### Run against the real backend
 
-Ensure the FastAPI backend is running on `http://localhost:8000`, then:
+Ensure the API is available on `http://localhost:8000`, then:
 
 ```bash
-cd frontend
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000 npm run dev
 ```
 
-Open `http://localhost:3000` in your browser.
+Open http://localhost:3000.
 
-### Run (mock backend)
+### Run in mock mode (no backend)
 
-Mock mode uses static assets in `public/data/mock/` (`questionnaire.json`, `report_sample.json`, `report_sample.pdf`) instead of calling the FastAPI API.
+Uses static fixtures under `public/data/mock/`:
 
 ```bash
-cd frontend
 USE_MOCK_BACKEND=true NEXT_PUBLIC_USE_MOCK_BACKEND=true npm run dev
 ```
 
-In this mode:
-
-- Questionnaire submission is short-circuited to a `mock-submission-id`
-- Submission status immediately resolves to `done` with `mock-report-id`
-- Report viewer loads `public/data/mock/report_sample.json`
-- PDF download can be exercised against `public/data/mock/report_sample.pdf`
-
 ### Tests
 
-- **Unit tests** (Jest + React Testing Library):
+```bash
+npm run test:unit
+USE_MOCK_BACKEND=true NEXT_PUBLIC_USE_MOCK_BACKEND=true npm run test:e2e
+```
 
-  ```bash
-  cd frontend
-  npm run test:unit
-  ```
+### Docker
 
-  These cover:
+From the repository root (preferred):
 
-  - Questionnaire conditional logic (show-if and clearing hidden values)
-  - `PdfDownloadButton` error handling
+```bash
+docker compose up -d --build frontend
+```
 
-- **End-to-end tests** (Playwright):
+Or build this directory alone:
 
-  ```bash
-  cd frontend
-  USE_MOCK_BACKEND=true NEXT_PUBLIC_USE_MOCK_BACKEND=true npm run dev
-  # in another terminal:
-  cd frontend
-  npm run test:e2e
-  ```
-
-  The `tests/e2e/happy-path.spec.ts` scenario:
-
-  - Opens `/`
-  - Walks through the questionnaire in mock mode
-  - Submits, waits for status, opens the report
-  - Verifies the **Download PDF** button is present
+```bash
+docker build -t netzero-frontend .
+docker run -p 3000:3000 netzero-frontend
+```
 
 ### Environment variables
 
-- **`NEXT_PUBLIC_API_BASE_URL`**: Base URL for the FastAPI backend (default `http://localhost:8000`).
-- **`USE_MOCK_BACKEND`**: When set to `true`, enables mock-backend behaviour in dev and tests.
-- **`NEXT_PUBLIC_USE_MOCK_BACKEND`**: Client-side flag mirroring `USE_MOCK_BACKEND`; must be set to `true` when running in mock mode so the React app uses mock assets instead of real HTTP calls.
-
+- `NEXT_PUBLIC_API_BASE_URL` — FastAPI base URL (default `http://localhost:8000`)
+- `USE_MOCK_BACKEND` / `NEXT_PUBLIC_USE_MOCK_BACKEND` — enable mock fixtures when `true`

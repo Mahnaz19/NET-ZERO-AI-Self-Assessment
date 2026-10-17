@@ -1,6 +1,6 @@
-## Backend - NetZero AI Self-Assessment
+## Backend — NET-ZERO Self-Assessment
 
-This directory contains the FastAPI-based backend for the NetZero AI Self-Assessment project.
+This directory contains the FastAPI-based backend for the NET-ZERO Self-Assessment project.
 It provides endpoints for accepting questionnaire submissions, persisting them to Postgres,
 and returning stored submissions and simple deterministic example reports.
 

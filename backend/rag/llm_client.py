@@ -44,17 +44,46 @@ class MockLLM(BaseLLMClient):
         match = re.search(r"submission[_\s]id[:\s]*(\d+)", prompt, re.I)
         if match:
             submission_id = int(match.group(1))
-        # Deterministic recommendations based on seed
-        n = max(2, (submission_id % 3) + 2)
+
+        # Read candidate lines from the prompt so mock output stays aligned
+        # with deterministic candidates supplied by the pipeline and can return
+        # a variable subset (like a real model would).
+        candidate_rows: list[tuple[str, float]] = []
+        for m in re.finditer(
+            r"^- ([A-Z0-9_]+): .*?\| kwh_saved=([-+]?\d*\.?\d+) cost_saved=([-+]?\d*\.?\d+)",
+            prompt,
+            re.MULTILINE,
+        ):
+            code = m.group(1)
+            kwh_saved = float(m.group(2))
+            cost_saved = float(m.group(3))
+            # Prioritize by monetary impact, with kWh as tie-breaker.
+            score = (cost_saved * 1000.0) + kwh_saved
+            candidate_rows.append((code, score))
+
+        if not candidate_rows:
+            candidate_rows = [
+                ("LED_LIGHTING", 4.0),
+                ("ENERGY_MANAGEMENT_BEHAVIOURAL", 3.0),
+                ("SOLAR_PANELS", 2.0),
+            ]
+
+        # Highest impact first.
+        candidate_rows.sort(key=lambda x: x[1], reverse=True)
+        candidate_codes = [c for c, _ in candidate_rows]
+
+        # Variable recommendation count (1..4, capped by available candidates).
+        desired_n = (submission_id % 4) + 1
+        n = min(max(1, desired_n), min(4, len(candidate_codes)))
         recommendations = []
         for i in range(n):
-            measure_code = ["LED_UPGRADE", "HEATING_CONTROLS", "SOLAR_PV"][i % 3]
+            measure_code = candidate_codes[i]
             priority = i + 1
             confidence = "high" if i == 0 else "medium"
 
             # Long-form deterministic text so the generated PDFs resemble the
             # structure/volume of the real (non-mock) recommendations.
-            if measure_code == "HEATING_CONTROLS":
+            if measure_code in {"ENERGY_MANAGEMENT_BEHAVIOURAL", "HEATING_CONTROLS"}:
                 recommendation_text = (
                     "The Carbon Trust estimate that companies can save up to 10% on energy costs "
                     "by no cost measures: good housekeeping measures which include:\n"
@@ -71,7 +100,7 @@ class MockLLM(BaseLLMClient):
                     f"Priority {priority}: Focus on controls and scheduling first to deliver rapid, low-risk "
                     "savings before considering higher-capex interventions."
                 )
-            elif measure_code == "LED_UPGRADE":
+            elif measure_code in {"LED_LIGHTING", "LED_UPGRADE"}:
                 recommendation_text = (
                     "Upgrade existing lighting to higher-efficiency LED fittings to reduce electricity usage "
                     "while maintaining required illuminance levels.\n\n"
@@ -82,7 +111,7 @@ class MockLLM(BaseLLMClient):
                     f"Priority {priority}: The measure is typically low disruption and can be phased to align "
                     "with maintenance schedules."
                 )
-            else:  # SOLAR_PV
+            elif measure_code in {"SOLAR_PANELS", "SOLAR_PV"}:
                 recommendation_text = (
                     "Installing a rooftop solar PV system would enable the site to generate a portion of its own "
                     "electricity, reducing reliance on the grid and lowering long-term operating costs.\n\n"
@@ -92,6 +121,13 @@ class MockLLM(BaseLLMClient):
                     "- validating expected output using site-specific conditions.\n\n"
                     f"Priority {priority}: Prioritise PV where roof conditions and load profiles support high "
                     "self-consumption."
+                )
+            else:
+                recommendation_text = (
+                    f"Implement the {measure_code.replace('_', ' ').title()} measure as part of the "
+                    "site's wider efficiency programme. Confirm scope with site-specific feasibility, "
+                    "collect supplier quotes, and track post-implementation energy and carbon outcomes "
+                    "against the current baseline."
                 )
 
             recommendations.append(

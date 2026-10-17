@@ -1,34 +1,49 @@
-# Local data (do NOT commit)
-data/
+# Local / generated data (root only — do not ignore frontend/public/data)
+/data/
 
-data/raw/
-data/processed/
 # Python
 backend/.venv/
+.venv/
+venv/
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+.coverage
+htmlcov/
 
 # Node
 frontend/node_modules/
 frontend/.next/
+frontend/out/
+frontend/coverage/
+frontend/test-results/
+frontend/playwright-report/
+frontend/data_questionnaire_dump.json
 
-# Env files
+# Env / secrets
 .env
-*.env
+.env.*
+!.env.example
+!.env.production.example
 
-# OS
+# OS / editor
 .DS_Store
 Thumbs.db
-# Virtual envs (do NOT commit)
-.venv/
-venv/
-.venv/Include/
-.venv/Lib/
-.venv/Scripts/
-.venv/pyvenv.cfg
-venv/Include/
-venv/Lib/
-venv/Scripts/
-venv/pyvenv.cfg
+.idea/
+.vscode/
 
+# Binaries / accidental dumps
+*.exe
+*.exe.deleteme
+*.dll
+*.so
+*.dylib
 
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
