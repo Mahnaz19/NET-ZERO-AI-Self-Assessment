@@ -1,0 +1,37 @@
+{
+  "report_id": "mock-report-id",
+  "business_name": "Example Business Ltd",
+  "site_postcode": "AB12 3CD",
+  "baseline": {
+    "electricity_kwh_annual": 120000,
+    "electricity_cost_annual_ex_vat": 42000,
+    "gas_kwh_annual": 80000,
+    "gas_cost_annual_ex_vat": 16000,
+    "total_co2_tonnes": 75.4
+  },
+  "recommendations": [
+    {
+      "id": "rec-led-lighting",
+      "title": "Upgrade to high‑efficiency LED lighting",
+      "description": "Replace remaining fluorescent and halogen fittings with LED luminaires and add occupancy/daylight controls where appropriate.",
+      "category": "Lighting",
+      "estimated_annual_kwh_saved": 18000,
+      "estimated_annual_saving_gbp": 5400,
+      "estimated_implementation_cost_gbp": 15000,
+      "payback_years": 2.8,
+      "estimated_annual_co2_saved_tonnes": 3.9
+    },
+    {
+      "id": "rec-heating-controls",
+      "title": "Optimise heating controls and scheduling",
+      "description": "Rationalise time schedules, reduce set points where comfortable, and ensure heating is off outside of occupancy hours.",
+      "category": "Heating & controls",
+      "estimated_annual_kwh_saved": 12000,
+      "estimated_annual_saving_gbp": 3600,
+      "estimated_implementation_cost_gbp": 3000,
+      "payback_years": 0.8,
+      "estimated_annual_co2_saved_tonnes": 2.4
+    }
+  ]
+}
+

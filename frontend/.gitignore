@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/data_questionnaire_dump.json
 
 # next.js
 /.next/

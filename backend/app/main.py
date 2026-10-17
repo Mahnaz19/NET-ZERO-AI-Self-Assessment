@@ -14,7 +14,7 @@ logger = logging.getLogger("app.main")
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="NetZero AI Self-Assessment Backend",
+        title="NET-ZERO Self-Assessment Backend",
         version="0.1.0",
     )
     app.add_middleware(
@@ -41,7 +41,7 @@ def create_app() -> FastAPI:
 
     @app.get("/")
     def root() -> dict:
-        return {"message": "NetZero AI backend running"}
+        return {"message": "NET-ZERO Self-Assessment backend running"}
 
     app.include_router(api_router)
 

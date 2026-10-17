@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   db:
     image: pgvector/pgvector:pg16   # Postgres 16 with pgvector bundled
@@ -58,6 +56,24 @@ services:
       ENVIRONMENT: development
       REDIS_URL: redis://redis:6379/0
     command: rq worker default
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+        NEXT_PUBLIC_USE_MOCK_BACKEND: "false"
+    container_name: netzero_frontend
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+      NEXT_PUBLIC_USE_MOCK_BACKEND: "false"
+      USE_MOCK_BACKEND: "false"
+    ports:
+      - "3000:3000"
 
 volumes:
   netzero_pgdata:
