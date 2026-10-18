@@ -1,6 +1,6 @@
 # NET-ZERO Self-Assessment
 
-This repository contains my own implementation of the system, built alongside my work on the Net Zero AI self-assessment platform at Aston Design Factory Birmingham, which is deployed and maintained by the Design Factory. It contains source code only: no programme data, no portal exports and no generated assessment reports are included.
+The Net Zero AI self-assessment platform exists in two forms: a short assessment that benchmarks a business against comparable businesses from previous energy audits, and a detailed assessment that produces a report from the business's own data. I built both at Aston Design Factory Birmingham, where they are deployed and maintained. This repository is my own implementation of the detailed assessment system. It contains source code only: no programme data, no portal exports and no generated assessment reports are included.
 
 Web application that helps organisations complete an energy self-assessment questionnaire, generate prioritised energy-saving recommendations, and download a PDF report.
 
